@@ -32,12 +32,15 @@ class GPSSpoofer:
 
     self.pwc = PoseWithCovarianceStamped()
     self.pwc.header.frame_id = 'vicon' # doesn't really matter to MSF
-    self.pwc.pose.covariance[6 * 0 + 0] = 0.00025;
-    self.pwc.pose.covariance[6 * 1 + 1] = 0.00025;
+    self.pwc.pose.covariance[6 * 0 + 0] = 0.000025;
+    self.pwc.pose.covariance[6 * 1 + 1] = 0.000025;
     self.pwc.pose.covariance[6 * 2 + 2] = 0.000025;
-    self.pwc.pose.covariance[6 * 3 + 3] = 0.0025;
-    self.pwc.pose.covariance[6 * 4 + 4] = 0.0025;
-    self.pwc.pose.covariance[6 * 5 + 5] = 0.0025;
+    self.pwc.pose.covariance[6 * 3 + 3] = 0.000025;
+    self.pwc.pose.covariance[6 * 4 + 4] = 0.000025;
+    self.pwc.pose.covariance[6 * 5 + 5] = 0.000025;
+
+    self.point = PointStamped()
+    self.point.header = self.pwc.header
 
     self.R_noise = 0.0
     self.theta_noise = 0.0
@@ -47,10 +50,11 @@ class GPSSpoofer:
 
     self.pub_spoofed_gps = rospy.Publisher('spoofed_gps', NavSatFix, queue_size=1)
     self.pub_disturbed_pose = rospy.Publisher('disturbed_pose', PoseWithCovarianceStamped, queue_size=1,  tcp_nodelay=True)
+    self.pub_point = rospy.Publisher('vicon_point', PointStamped, queue_size=1,  tcp_nodelay=True)    
 
     self.sub_gps = rospy.Subscriber('fcu/gps', NavSatFix, self.callback_gps, tcp_nodelay=True)
     self.sub_estimated_odometry = rospy.Subscriber('estimated_odometry', Odometry, self.callback_odometry, queue_size=1, tcp_nodelay=True)
-    self.sub_imu = rospy.Subscriber('imu/data_compass', Imu, self.callback_imu, queue_size=1, tcp_nodelay=True)
+    self.sub_imu = rospy.Subscriber('fcu/imu', Imu, self.callback_imu, queue_size=1, tcp_nodelay=True)
     self.sub_pressure_height = rospy.Subscriber('pressure_height_point', PointStamped, self.callback_pressure_height, queue_size=1, tcp_nodelay=True)
 
   def callback_gps(self, data):
@@ -69,7 +73,8 @@ class GPSSpoofer:
     x = data.pose.pose.position.x
     y = data.pose.pose.position.y
 
-    angle = radians(-7.0)
+    #angle = radians(-7.0) #imu compass
+    angle = -2.73
 
     self.pwc.pose.pose.position.x = cos(angle)*x - sin(angle)*y
     self.pwc.pose.pose.position.y = sin(angle)*x + cos(angle)*y
@@ -79,6 +84,11 @@ class GPSSpoofer:
 
     self.pwc.pose.pose.orientation = self.latest_imu_message.orientation
 
+
+    self.point.header = self.pwc.header
+    self.point.point.x = x
+    self.point.point.y = y
+    self.point.point.z = data.pose.pose.position.z
 
     if not self.got_odometry:
         print "GPSSpoofer: initializing timers"
@@ -105,6 +115,10 @@ class GPSSpoofer:
     self.pwc.pose.pose.position.x += self.R_noise*cos(self.theta_noise)
     self.pwc.pose.pose.position.y += self.R_noise*sin(self.theta_noise)
     self.pub_disturbed_pose.publish(self.pwc)
+
+    self.point.point.x += self.R_noise*cos(self.theta_noise)
+    self.point.point.y +=self.R_noise*sin(self.theta_noise)
+    self.pub_point.publish(self.point)
 
 if __name__ == '__main__':
 

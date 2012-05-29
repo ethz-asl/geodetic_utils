@@ -16,6 +16,7 @@ bool g_got_pressure;
 
 ros::Publisher g_gps_pose_pub;
 ros::Publisher g_gps_transform_pub;
+ros::Publisher g_gps_position_pub;
 
 bool g_trust_gps;
 double g_covariance_position_x;
@@ -76,6 +77,13 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   pose_msg->pose.pose.position.z = z;
   pose_msg->pose.pose.orientation = g_latest_imu_msg.orientation;
 
+  // Fill up position message
+  geometry_msgs::PointStampedPtr position_msg(
+    new geometry_msgs::PointStamped);
+  position_msg->header = pose_msg->header;
+  position_msg->header.frame_id = "world";
+  position_msg->point = pose_msg->pose.pose.position;
+
   if (g_got_pressure) {
     pose_msg->pose.pose.position.z = g_latest_pressure_msg.point.z;
   }
@@ -110,6 +118,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   }
 
   g_gps_pose_pub.publish(pose_msg);
+  g_gps_position_pub.publish(position_msg);
 
   // Fill up transform message
   geometry_msgs::TransformStampedPtr transform_msg(new geometry_msgs::TransformStamped);
@@ -177,6 +186,7 @@ int main(int argc, char** argv)
   // Initialize publishers
   g_gps_pose_pub = nh.advertise < geometry_msgs::PoseWithCovarianceStamped > ("gps_pose", 1);
   g_gps_transform_pub = nh.advertise < geometry_msgs::TransformStamped > ("gps_transform", 1);
+  g_gps_position_pub = nh.advertise < geometry_msgs::PointStamped > ("gps_position", 1);
 
   // Subscribe to IMU and GPS fixes, and convert in GPS callback
   ros::Subscriber imu_sub = nh.subscribe("imu", 1, &imu_callback);
