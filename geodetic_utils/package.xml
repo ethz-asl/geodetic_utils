@@ -4,10 +4,15 @@
   <version>1.0.0</version>
   <description>Simple library for converting coordinates to/from several geodetic frames (lat/lon, ECEF, ENU, NED, etc.)</description>
 
+  <author>Enric Galceran</author>
+  <author>Marija Popovic</author>
+
   <maintainer email="enric.galceran@mavt.ethz.ch">Enric Galceran</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <buildtool_depend>catkin_simple</buildtool_depend>
+  <build_depend>cmake_modules</build_depend>
+  <build_depend>Eigen</build_depend>
+
 </package>
 
