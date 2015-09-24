@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>geodetic_utils</name>
-  <version>1.0</version>
+  <version>1.0.0</version>
   <description>Simple library for converting coordinates to/from several geodetic frames (lat/lon, ECEF, ENU, NED, etc.)</description>
 
   <maintainer email="enric.galceran@mavt.ethz.ch">Enric Galceran</maintainer>
