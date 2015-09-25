@@ -6,11 +6,11 @@
 
 namespace geodetic_conv {
 // Geodetic system parameters
-static const double semimajor_axis = 6378137;
-static const double semiminor_axis = 6356752.3142;
-static const double first_eccentricity_squared = 6.69437999014 * 0.001;
-static const double second_eccentricity_squared = 6.73949674228 * 0.001;
-static const double flattening = 1 / 298.257223563;
+static constexpr double kSemimajorAxis = 6378137;
+static constexpr double kSemiminorAxis = 6356752.3142;
+static constexpr double kFirstEccentricitySquared = 6.69437999014 * 0.001;
+static constexpr double kSecondEccentricitySquared = 6.73949674228 * 0.001;
+static constexpr double kFlattening = 1 / 298.257223563;
 
 class GeodeticConverter
 {
@@ -46,10 +46,10 @@ class GeodeticConverter
     // http://code.google.com/p/pysatel/source/browse/trunk/coord.py?r=22
     double lat_rad = deg2Rad(lat);
     double lon_rad = deg2Rad(lon);
-    double xi = sqrt(1 - first_eccentricity_squared * sin(lat_rad) * sin(lat_rad));
-    x = (semimajor_axis / xi + altitude) * cos(lat_rad) * cos(lon_rad);
-    y = (semimajor_axis / xi + altitude) * cos(lat_rad) * sin(lon_rad);
-    z = (semimajor_axis / xi * (1 - first_eccentricity_squared) + altitude) * sin(lat_rad);
+    double xi = sqrt(1 - kFirstEccentricitySquared * sin(lat_rad) * sin(lat_rad));
+    x = (kSemimajorAxis / xi + altitude) * cos(lat_rad) * cos(lon_rad);
+    y = (kSemimajorAxis / xi + altitude) * cos(lat_rad) * sin(lon_rad);
+    z = (kSemimajorAxis / xi * (1 - kFirstEccentricitySquared) + altitude) * sin(lat_rad);
   }
 
   void ecef2Geodetic(const double x, const double y, const double z, double& lat, double& lon,
@@ -61,23 +61,23 @@ class GeodeticConverter
     // Electronic Systems, vol. 30, pp. 957-961, 1994.
 
     double r = sqrt(x * x + y * y);
-    double Esq = semimajor_axis * semimajor_axis - semiminor_axis * semiminor_axis;
-    double F = 54 * semiminor_axis * semiminor_axis * z * z;
-    double G = r * r + (1 - first_eccentricity_squared) * z * z - first_eccentricity_squared * Esq;
-    double C = (first_eccentricity_squared * first_eccentricity_squared * F * r * r) / pow(G, 3);
+    double Esq = kSemimajorAxis * kSemimajorAxis - kSemiminorAxis * kSemiminorAxis;
+    double F = 54 * kSemiminorAxis * kSemiminorAxis * z * z;
+    double G = r * r + (1 - kFirstEccentricitySquared) * z * z - kFirstEccentricitySquared * Esq;
+    double C = (kFirstEccentricitySquared * kFirstEccentricitySquared * F * r * r) / pow(G, 3);
     double S = cbrt(1 + C + sqrt(C * C + 2 * C));
     double P = F / (3 * pow((S + 1 / S + 1), 2) * G * G);
-    double Q = sqrt(1 + 2 * first_eccentricity_squared * first_eccentricity_squared * P);
-    double r_0 = -(P * first_eccentricity_squared * r) / (1 + Q)
+    double Q = sqrt(1 + 2 * kFirstEccentricitySquared * kFirstEccentricitySquared * P);
+    double r_0 = -(P * kFirstEccentricitySquared * r) / (1 + Q)
         + sqrt(
-            0.5 * semimajor_axis * semimajor_axis * (1 + 1.0 / Q)
-                - P * (1 - first_eccentricity_squared) * z * z / (Q * (1 + Q)) - 0.5 * P * r * r);
-    double U = sqrt(pow((r - first_eccentricity_squared * r_0), 2) + z * z);
+            0.5 * kSemimajorAxis * kSemimajorAxis * (1 + 1.0 / Q)
+                - P * (1 - kFirstEccentricitySquared) * z * z / (Q * (1 + Q)) - 0.5 * P * r * r);
+    double U = sqrt(pow((r - kFirstEccentricitySquared * r_0), 2) + z * z);
     double V = sqrt(
-        pow((r - first_eccentricity_squared * r_0), 2) + (1 - first_eccentricity_squared) * z * z);
-    double Z_0 = semiminor_axis * semiminor_axis * z / (semimajor_axis * V);
-    altitude = U * (1 - semiminor_axis * semiminor_axis / (semimajor_axis * V));
-    lat = rad2Deg(atan((z + second_eccentricity_squared * Z_0) / r));
+        pow((r - kFirstEccentricitySquared * r_0), 2) + (1 - kFirstEccentricitySquared) * z * z);
+    double Z_0 = kSemiminorAxis * kSemiminorAxis * z / (kSemimajorAxis * V);
+    altitude = U * (1 - kSemiminorAxis * kSemiminorAxis / (kSemimajorAxis * V));
+    lat = rad2Deg(atan((z + kSecondEccentricitySquared * Z_0) / r));
     lon = rad2Deg(atan2(y, x));
   }
 
