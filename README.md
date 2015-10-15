@@ -13,6 +13,7 @@ Simple library for converting coordinates to/from several geodetic frames and ma
 Creates a reference frame based on initial GPS measurements
 #### Arguments
 * number of initial GPS measurements to wait for and average over
+
 #### Subscribed Topics:
 * `fcu/gps` ([sensor_msgs/NavSatFix](http://docs.ros.org/api/sensor_msgs/html/msg/NavSatFix.html)) - GPS sensor information
 
@@ -20,8 +21,10 @@ Creates a reference frame based on initial GPS measurements
 Publishes position information based on GPS measurements and initialised reference frame
 #### Parameters
 * `sim` - true if GPS readings received from /gazebo using Hectors plugin, false if received from actual device
+
 #### Subscribed Topics:
 * `gps` ([sensor_msgs/NavSatFix](http://docs.ros.org/api/sensor_msgs/html/msg/NavSatFix.html)) - GPS sensor information
+
 #### Published Topics:
 * `gps_pose` ([geometry_msgs/PoseWithCovarianceStamped](http://docs.ros.org/api/geometry_msgs/html/msg/PoseWithCovarianceStamped.html)) - local ENU co-ordinates in initialised reference frame
 
