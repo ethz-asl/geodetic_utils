@@ -1,14 +1,29 @@
 #include <ros/ros.h>
+#include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <geodetic_utils/geodetic_conv.hpp>
 
-geodetic_converter::GeodeticConverter g_geodetic_converter;
 bool g_is_sim;
+geodetic_converter::GeodeticConverter g_geodetic_converter;
+sensor_msgs::Imu g_latest_imu_msg;
+bool g_got_imu;
 ros::Publisher g_gps_pose_pub;
+ros::Publisher g_gps_transform_pub;
 
-void gpsCb(const sensor_msgs::NavSatFixConstPtr & msg)
+void imu_callback(const sensor_msgs::ImuConstPtr& msg)
 {
+  g_latest_imu_msg = *msg;
+  g_got_imu = true;
+}
+
+void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
+{
+  if (!g_got_imu) {
+    ROS_WARN_STREAM_THROTTLE(1, "No IMU data yet");
+    return;
+  }
 
   if (msg->status.status < sensor_msgs::NavSatStatus::STATUS_FIX) {
     ROS_WARN_STREAM_THROTTLE(1, "No GPS fix");
@@ -31,6 +46,7 @@ void gpsCb(const sensor_msgs::NavSatFixConstPtr & msg)
     //z = z;
   }
 
+  // Fill up pose message
   geometry_msgs::PoseWithCovarianceStampedPtr pose_msg(
       new geometry_msgs::PoseWithCovarianceStamped);
   pose_msg->header = msg->header;
@@ -38,6 +54,7 @@ void gpsCb(const sensor_msgs::NavSatFixConstPtr & msg)
   pose_msg->pose.pose.position.x = x;
   pose_msg->pose.pose.position.y = y;
   pose_msg->pose.pose.position.z = z;
+  pose_msg->pose.pose.orientation = g_latest_imu_msg.orientation;
 
   pose_msg->pose.covariance.assign(0);  // by default
 
@@ -60,17 +77,32 @@ void gpsCb(const sensor_msgs::NavSatFixConstPtr & msg)
   pose_msg->pose.covariance[6 * 0 + 0] = 0.05;
   pose_msg->pose.covariance[6 * 1 + 1] = 0.05;
   pose_msg->pose.covariance[6 * 2 + 2] = 0.05;
+  pose_msg->pose.covariance[6 * 3 + 3] = 0.05;
+  pose_msg->pose.covariance[6 * 4 + 4] = 0.05;
+  pose_msg->pose.covariance[6 * 5 + 5] = 0.05;
 //  }
 
   g_gps_pose_pub.publish(pose_msg);
+
+  // Fill up transform message
+  geometry_msgs::TransformStampedPtr transform_msg(new geometry_msgs::TransformStamped);
+  transform_msg->header = msg->header;
+  transform_msg->header.frame_id = "world";
+  transform_msg->transform.translation.x = x;
+  transform_msg->transform.translation.y = y;
+  transform_msg->transform.translation.z = z;
+  transform_msg->transform.rotation = g_latest_imu_msg.orientation;
+
+  g_gps_transform_pub.publish(transform_msg);
 }
 
 int main(int argc, char** argv)
 {
-
   ros::init(argc, argv, "gps_to_pose_conversion_node");
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
+
+  g_got_imu = false;
 
   // Use different coordinate transform if using simulator
   if (!pnh.getParam("sim", g_is_sim)) {
@@ -97,12 +129,13 @@ int main(int argc, char** argv)
   ROS_INFO("GPS reference initialized correctly %f, %f, %f", initial_latitude, initial_longitude,
            initial_altitude);
 
-  // Initialize publisher
+  // Initialize publishers
   g_gps_pose_pub = nh.advertise < geometry_msgs::PoseWithCovarianceStamped > ("gps_pose", 1);
+  g_gps_transform_pub = nh.advertise < geometry_msgs::TransformStamped > ("gps_transform", 1);
 
-  // Subscribe to GPS fixes, and convert in callback
-  ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gpsCb);
+  // Subscribe to IMU and GPS fixes, and convert in GPS callback
+  ros::Subscriber imu_sub = nh.subscribe("imu", 1, &imu_callback);
+  ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
 
   ros::spin();
 }
-

@@ -10,7 +10,7 @@ int g_its;
 enum EMode {MODE_AVERAGE = 0, MODE_WAIT}; // average over, or wait for, n GPS fixes
 EMode g_mode;
 
-void gpsCb(const sensor_msgs::NavSatFixConstPtr & msg) {
+void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg) {
 
   static int count = 1;
 
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
 
   ROS_INFO("Taking %d measurements and %s\n", g_its, (g_mode == MODE_AVERAGE)? "averaging to get the reference" : "taking the last as reference");
 
-  ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gpsCb);
+  ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
 
   ros::spin();
 }
