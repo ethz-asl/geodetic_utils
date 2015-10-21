@@ -29,6 +29,7 @@ Header file for IMU Compass Class that combines gyroscope and magnetometer data 
 #include "geometry_msgs/Vector3Stamped.h"
 #include "std_msgs/Float32.h"
 
+#include <string.h>
 //typedef boost::shared_ptr<sensor_msgs::Imu const> ImuConstPtr;
 
 class IMUCompass {
@@ -59,7 +60,13 @@ private:
   bool filter_initialized_; //after receiving the first measurement, make sure the filter is initialized
   bool gyro_update_complete_; //sigfnifies that a gyro update (motion model update) has gone through
 
-  double mag_zero_x_, mag_zero_y_, mag_zero_z_;
+  std::string calibration_mode_;
+
+  // Calibration parameters
+  double mag_2D_x_bias_, mag_2D_y_bias_, mag_2D_z_bias_;
+  double mag_3D_x_prescale_, mag_3D_y_prescale_, mag_3D_z_prescale_;
+  double mag_3D_x_bias_, mag_3D_y_bias_, mag_3D_z_bias_;
+  double mag_3D_x_scale_, mag_3D_y_scale_, mag_3D_z_scale_;
 
   sensor_msgs::ImuPtr curr_imu_reading_;
 

@@ -28,15 +28,47 @@ double magn(tf::Vector3 a) {
       return sqrt(a.x()*a.x() + a.y()*a.y() + a.z()*a.z());
 }
 
-IMUCompass::IMUCompass(ros::NodeHandle &n) :
-    node_(n), curr_imu_reading_(new sensor_msgs::Imu()) {
+IMUCompass::IMUCompass(ros::NodeHandle &n)
+    : node_(n),
+      curr_imu_reading_(new sensor_msgs::Imu())
+{
+
+  ros::param::param("~calibration_mode", calibration_mode_);
+
   // Acquire Parameters
-  ros::param::param("~mag_bias/x", mag_zero_x_, 0.0);
-  ros::param::param("~mag_bias/y", mag_zero_y_, 0.0);
-  ros::param::param("~mag_bias/z", mag_zero_z_, 0.0);
+  // 2D
+  ros::param::param("~mag_bias_2D/x", mag_2D_x_bias_, 0.0);
+  ros::param::param("~mag_bias_2D/y", mag_2D_y_bias_, 0.0);
+  ros::param::param("~mag_bias_2D/z", mag_2D_z_bias_, 0.0);
 
+  // 3D
+  ros::param::param("~mag_bias_3D/x_prescale", mag_3D_x_prescale_, 0.0);
+  ros::param::param("~mag_bias_3D/y_prescale", mag_3D_y_prescale_, 0.0);
+  ros::param::param("~mag_bias_3D/z_prescale", mag_3D_z_prescale_, 0.0);
 
-  ROS_INFO("Using magnetometer bias (x,y):%f,%f", mag_zero_x_, mag_zero_y_);
+  ros::param::param("~mag_bias_3D/x_bias", mag_3D_x_bias_, 0.0);
+  ros::param::param("~mag_bias_3D/y_bias", mag_2D_y_bias_, 0.0);
+  ros::param::param("~mag_bias_3D/z_bias", mag_2D_z_bias_, 0.0);
+
+  ros::param::param("~mag_bias_3D/x_scale", mag_3D_x_scale_, 0.0);
+  ros::param::param("~mag_bias_3D/y_scale", mag_3D_y_scale_, 0.0);
+  ros::param::param("~mag_bias_3D/z_scale", mag_3D_z_scale_, 0.0);
+
+  if (calibration_mode_ == "2D")
+  {
+    ROS_INFO("Using 2D magnetometer bias (x,y):%f,%f", mag_2D_x_bias_, mag_2D_y_bias_);
+  } else if (calibration_mode_ == "3D")
+  {
+    ROS_INFO("Using magnetometer pre-scale factor (x,y,z):%f,%f,%f", mag_3D_x_prescale_,
+             mag_3D_y_prescale_, mag_3D_z_prescale_);
+    ROS_INFO("Using magnetometer bias (x,y,z):%f,%f,%f", mag_3D_x_bias_, mag_3D_y_bias_,
+             mag_3D_z_bias_);
+    ROS_INFO("Using magnetometer factor (x,y,z):%f,%f,%f", mag_3D_x_scale_, mag_3D_y_scale_,
+             mag_3D_z_scale_);
+  } else {
+    ROS_WARN("Invalid calibration mode!");
+    ros::shutdown();
+  }
 
   ros::param::param("~compass/sensor_timeout", sensor_timeout_, 0.5);
   ros::param::param("~compass/yaw_meas_variance", yaw_meas_variance_, 10.0);
@@ -134,9 +166,9 @@ void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) 
   geometry_msgs::Vector3 imu_mag = data->vector;
   geometry_msgs::Vector3 imu_mag_transformed;
 
-  imu_mag.x = data->vector.x*0.25;
-  imu_mag.y = data->vector.y*0.25;
-  imu_mag.z = data->vector.z*0.25;
+  imu_mag.x = data->vector.x;
+  imu_mag.y = data->vector.y;
+  imu_mag.z = data->vector.y;
 
   last_measurement_update_time_ = ros::Time::now().toSec();
   tf::StampedTransform transform;
@@ -152,10 +184,21 @@ void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) 
   tf::vector3MsgToTF(imu_mag, orig_bt);
   tf::vector3TFToMsg(orig_bt * transform_mat, imu_mag_transformed);
 
+  double mag_x, mag_y, mag_z;
+
   // Compensate for hard iron
-  double mag_x = imu_mag_transformed.x - mag_zero_x_;
-  double mag_y = imu_mag_transformed.y - mag_zero_y_;
-  double mag_z = imu_mag_transformed.z;  // calibration is purely 2D
+  // 2D
+  if (calibration_mode_ == "2D") {
+    mag_x = imu_mag_transformed.x - mag_2D_x_bias_;
+    mag_y = imu_mag_transformed.y - mag_2D_y_bias_;
+    mag_z = imu_mag_transformed.z;
+  }
+  // 3D
+  else if (calibration_mode_ == "3D") {
+    mag_x = (imu_mag_transformed.x * mag_3D_x_prescale_ + mag_3D_x_bias_) / mag_3D_x_scale_;
+    mag_y = (imu_mag_transformed.y * mag_3D_y_prescale_ + mag_3D_y_bias_) / mag_3D_y_scale_;
+    mag_z = (imu_mag_transformed.z * mag_3D_z_prescale_ + mag_3D_z_bias_) / mag_3D_z_scale_;
+  }
 
   // Normalize vector
   tf::Vector3 calib_mag(mag_x, mag_y, mag_z);
