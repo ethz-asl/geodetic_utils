@@ -33,7 +33,7 @@ IMUCompass::IMUCompass(ros::NodeHandle &n)
       curr_imu_reading_(new sensor_msgs::Imu())
 {
 
-  ros::param::param("~calibration_mode", calibration_mode_);
+  ros::param::param("~calibration_mode", calibration_mode_, "3D");
 
   // Acquire Parameters
   // 2D
@@ -42,17 +42,17 @@ IMUCompass::IMUCompass(ros::NodeHandle &n)
   ros::param::param("~mag_bias_2D/z", mag_2D_z_bias_, 0.0);
 
   // 3D
-  ros::param::param("~mag_bias_3D/x_prescale", mag_3D_x_prescale_, 0.0);
-  ros::param::param("~mag_bias_3D/y_prescale", mag_3D_y_prescale_, 0.0);
-  ros::param::param("~mag_bias_3D/z_prescale", mag_3D_z_prescale_, 0.0);
+  ros::param::param("~mag_bias_3D/x_prescale", mag_3D_x_prescale_, 1.0);
+  ros::param::param("~mag_bias_3D/y_prescale", mag_3D_y_prescale_, 1.0);
+  ros::param::param("~mag_bias_3D/z_prescale", mag_3D_z_prescale_, 1.0);
 
   ros::param::param("~mag_bias_3D/x_bias", mag_3D_x_bias_, 0.0);
   ros::param::param("~mag_bias_3D/y_bias", mag_2D_y_bias_, 0.0);
   ros::param::param("~mag_bias_3D/z_bias", mag_2D_z_bias_, 0.0);
 
-  ros::param::param("~mag_bias_3D/x_scale", mag_3D_x_scale_, 0.0);
-  ros::param::param("~mag_bias_3D/y_scale", mag_3D_y_scale_, 0.0);
-  ros::param::param("~mag_bias_3D/z_scale", mag_3D_z_scale_, 0.0);
+  ros::param::param("~mag_bias_3D/x_scale", mag_3D_x_scale_, 1.0);
+  ros::param::param("~mag_bias_3D/y_scale", mag_3D_y_scale_, 1.0);
+  ros::param::param("~mag_bias_3D/z_scale", mag_3D_z_scale_, 1.0);
 
   if (calibration_mode_ == "2D")
   {
