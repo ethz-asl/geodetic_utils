@@ -25,7 +25,6 @@ add_definitions(-std=c++11)
 
 catkin_package(
   INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS}
-  LIBRARIES geodetic_utils
   CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs geometry_msgs
   DEPENDS Eigen
 )
