@@ -33,7 +33,7 @@ IMUCompass::IMUCompass(ros::NodeHandle &n)
       curr_imu_reading_(new sensor_msgs::Imu())
 {
 
-  ros::param::param("~calibration_mode", calibration_mode_, "3D");
+  ros::param::param(std::string("~calibration_mode"), calibration_mode_, std::string("3D"));
 
   // Acquire Parameters
   // 2D
@@ -47,8 +47,8 @@ IMUCompass::IMUCompass(ros::NodeHandle &n)
   ros::param::param("~mag_bias_3D/z_prescale", mag_3D_z_prescale_, 1.0);
 
   ros::param::param("~mag_bias_3D/x_bias", mag_3D_x_bias_, 0.0);
-  ros::param::param("~mag_bias_3D/y_bias", mag_2D_y_bias_, 0.0);
-  ros::param::param("~mag_bias_3D/z_bias", mag_2D_z_bias_, 0.0);
+  ros::param::param("~mag_bias_3D/y_bias", mag_3D_y_bias_, 0.0);
+  ros::param::param("~mag_bias_3D/z_bias", mag_3D_z_bias_, 0.0);
 
   ros::param::param("~mag_bias_3D/x_scale", mag_3D_x_scale_, 1.0);
   ros::param::param("~mag_bias_3D/y_scale", mag_3D_y_scale_, 1.0);
@@ -189,15 +189,17 @@ void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) 
   // Compensate for hard iron
   // 2D
   if (calibration_mode_ == "2D") {
+    ROS_INFO("Applying 2D calibration");
     mag_x = imu_mag_transformed.x - mag_2D_x_bias_;
     mag_y = imu_mag_transformed.y - mag_2D_y_bias_;
     mag_z = imu_mag_transformed.z;
   }
   // 3D
   else if (calibration_mode_ == "3D") {
-    mag_x = (imu_mag_transformed.x * mag_3D_x_prescale_ + mag_3D_x_bias_) / mag_3D_x_scale_;
-    mag_y = (imu_mag_transformed.y * mag_3D_y_prescale_ + mag_3D_y_bias_) / mag_3D_y_scale_;
-    mag_z = (imu_mag_transformed.z * mag_3D_z_prescale_ + mag_3D_z_bias_) / mag_3D_z_scale_;
+    ROS_INFO("Applying 3D calibration");
+    mag_x = (imu_mag_transformed.x * mag_3D_x_prescale_ - mag_3D_x_bias_) * mag_3D_x_scale_;
+    mag_y = (imu_mag_transformed.y * mag_3D_y_prescale_ - mag_3D_y_bias_) * mag_3D_y_scale_;
+    mag_z = (imu_mag_transformed.z * mag_3D_z_prescale_ - mag_3D_z_bias_) * mag_3D_z_scale_;
   }
 
   // Normalize vector
