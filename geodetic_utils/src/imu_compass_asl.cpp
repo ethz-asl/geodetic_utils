@@ -189,14 +189,12 @@ void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) 
   // Compensate for hard iron
   // 2D
   if (calibration_mode_ == "2D") {
-    ROS_INFO("Applying 2D calibration");
     mag_x = imu_mag_transformed.x - mag_2D_x_bias_;
     mag_y = imu_mag_transformed.y - mag_2D_y_bias_;
     mag_z = imu_mag_transformed.z;
   }
   // 3D
   else if (calibration_mode_ == "3D") {
-    ROS_INFO("Applying 3D calibration");
     mag_x = (imu_mag_transformed.x * mag_3D_x_prescale_ - mag_3D_x_bias_) * mag_3D_x_scale_;
     mag_y = (imu_mag_transformed.y * mag_3D_y_prescale_ - mag_3D_y_bias_) * mag_3D_y_scale_;
     mag_z = (imu_mag_transformed.z * mag_3D_z_prescale_ - mag_3D_z_bias_) * mag_3D_z_scale_;
