@@ -44,3 +44,7 @@ add_executable(gps_to_pose_conversion_node src/gps_to_pose_conversion_node.cpp)
 add_dependencies(gps_to_pose_conversion_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(gps_to_pose_conversion_node  ${catkin_LIBRARIES})
 
+add_executable(imu_compass_asl src/imu_compass_asl.cpp)
+add_dependencies(imu_compass_asl ${catkin_EXPORTED_TARGETS})
+target_link_libraries(imu_compass_asl  ${catkin_LIBRARIES})
+
