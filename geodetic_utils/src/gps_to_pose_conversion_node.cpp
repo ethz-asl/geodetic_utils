@@ -58,29 +58,35 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
 
   pose_msg->pose.covariance.assign(0);  // by default
 
-//  if (msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_KNOWN
-//      || msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_APPROXIMATED) {
-//    // fill in completely (TODO, diagonal for now)
-//    pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
-//    pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
-//    pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
-//
-//  } else if (msg->position_covariance_type
-//      == sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN) {
-//    // fill in diagonal
-//    pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
-//    pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
-//    pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
-//
-//  } else {
-//     //unknown or otherwise (default value)
-  pose_msg->pose.covariance[6 * 0 + 0] = 0.05;
-  pose_msg->pose.covariance[6 * 1 + 1] = 0.05;
-  pose_msg->pose.covariance[6 * 2 + 2] = 0.05;
-  pose_msg->pose.covariance[6 * 3 + 3] = 0.05;
-  pose_msg->pose.covariance[6 * 4 + 4] = 0.05;
-  pose_msg->pose.covariance[6 * 5 + 5] = 0.05;
-//  }
+  if (msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_KNOWN
+      || msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_APPROXIMATED) {
+    // fill in completely (TODO, diagonal for now)
+    pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
+    pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
+    pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
+    pose_msg->pose.covariance[6 * 3 + 3] = 0.05;
+    pose_msg->pose.covariance[6 * 4 + 4] = 0.05;
+    pose_msg->pose.covariance[6 * 5 + 5] = 0.05;
+
+  } else if (msg->position_covariance_type
+      == sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN) {
+    // fill in diagonal
+    pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
+    pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
+    pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
+    pose_msg->pose.covariance[6 * 3 + 3] = 0.05;
+    pose_msg->pose.covariance[6 * 4 + 4] = 0.05;
+    pose_msg->pose.covariance[6 * 5 + 5] = 0.05;
+
+  } else {
+    //unknown or otherwise (default value)
+    pose_msg->pose.covariance[6 * 0 + 0] = 0.05;
+    pose_msg->pose.covariance[6 * 1 + 1] = 0.05;
+    pose_msg->pose.covariance[6 * 2 + 2] = 0.05;
+    pose_msg->pose.covariance[6 * 3 + 3] = 0.05;
+    pose_msg->pose.covariance[6 * 4 + 4] = 0.05;
+    pose_msg->pose.covariance[6 * 5 + 5] = 0.05;
+  }
 
   g_gps_pose_pub.publish(pose_msg);
 
