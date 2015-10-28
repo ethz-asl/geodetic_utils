@@ -12,7 +12,7 @@ bool g_got_imu;
 ros::Publisher g_gps_pose_pub;
 ros::Publisher g_gps_transform_pub;
 
-bool trust_gps;
+bool g_trust_gps;
 
 double covariance_position_x;
 double covariance_position_y;
@@ -76,18 +76,21 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   pose_msg->pose.covariance[6 * 5 + 5] = covariance_orientation_z;
 
   // Take covariances from GPS
-  if (trust_gps) {
+  if (g_trust_gps) {
     if (msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_KNOWN
         || msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_APPROXIMATED) {
-      // fill in completely (TODO, diagonal for now)
-      pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
-      pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
-      pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
+      // Fill in completely
+      for (int i = 0; i <= 2; i++) {
+        for (int j = 0; j <= 2; j++) {
+          pose_msg->pose.covariance[6 * i + j] = msg->position_covariance[3 * i + j];
+        }
+      }
     } else if (msg->position_covariance_type
         == sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN) {
-      pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
-      pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
-      pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
+      // Only fill in diagonal
+      for (int i = 0; i <= 2; i++) {
+        pose_msg->pose.covariance[6 * i + i] = msg->position_covariance[3 * i + i];
+      }
     }
   }
 
@@ -119,8 +122,8 @@ int main(int argc, char** argv)
     g_is_sim = false;
   }
 
-  // Specify if covariances should be set manually or from GPS
-  ros::param::param("~trust_gps", trust_gps, false);
+  // Specify whether covariances should be set manually or from GPS
+  ros::param::param("~trust_gps", g_trust_gps, false);
 
   // Get manual parameters
   ros::param::param("~manual_covariances/position/x", covariance_position_x, 5.0);
