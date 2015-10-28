@@ -12,6 +12,15 @@ bool g_got_imu;
 ros::Publisher g_gps_pose_pub;
 ros::Publisher g_gps_transform_pub;
 
+bool g_trust_gps;
+
+double covariance_position_x;
+double covariance_position_y;
+double covariance_position_z;
+double covariance_orientation_x;
+double covariance_orientation_y;
+double covariance_orientation_z;
+
 void imu_callback(const sensor_msgs::ImuConstPtr& msg)
 {
   g_latest_imu_msg = *msg;
@@ -56,31 +65,34 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   pose_msg->pose.pose.position.z = z;
   pose_msg->pose.pose.orientation = g_latest_imu_msg.orientation;
 
-  pose_msg->pose.covariance.assign(0);  // by default
+  pose_msg->pose.covariance.assign(0);
 
-//  if (msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_KNOWN
-//      || msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_APPROXIMATED) {
-//    // fill in completely (TODO, diagonal for now)
-//    pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
-//    pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
-//    pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
-//
-//  } else if (msg->position_covariance_type
-//      == sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN) {
-//    // fill in diagonal
-//    pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
-//    pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
-//    pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
-//
-//  } else {
-//     //unknown or otherwise (default value)
-  pose_msg->pose.covariance[6 * 0 + 0] = 0.05;
-  pose_msg->pose.covariance[6 * 1 + 1] = 0.05;
-  pose_msg->pose.covariance[6 * 2 + 2] = 0.05;
-  pose_msg->pose.covariance[6 * 3 + 3] = 0.05;
-  pose_msg->pose.covariance[6 * 4 + 4] = 0.05;
-  pose_msg->pose.covariance[6 * 5 + 5] = 0.05;
-//  }
+  // Set default covariances
+  pose_msg->pose.covariance[6 * 0 + 0] = covariance_position_x;
+  pose_msg->pose.covariance[6 * 1 + 1] = covariance_position_y;
+  pose_msg->pose.covariance[6 * 2 + 2] = covariance_position_z;
+  pose_msg->pose.covariance[6 * 3 + 3] = covariance_orientation_x;
+  pose_msg->pose.covariance[6 * 4 + 4] = covariance_orientation_y;
+  pose_msg->pose.covariance[6 * 5 + 5] = covariance_orientation_z;
+
+  // Take covariances from GPS
+  if (g_trust_gps) {
+    if (msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_KNOWN
+        || msg->position_covariance_type == sensor_msgs::NavSatFix::COVARIANCE_TYPE_APPROXIMATED) {
+      // Fill in completely
+      for (int i = 0; i <= 2; i++) {
+        for (int j = 0; j <= 2; j++) {
+          pose_msg->pose.covariance[6 * i + j] = msg->position_covariance[3 * i + j];
+        }
+      }
+    } else if (msg->position_covariance_type
+        == sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN) {
+      // Only fill in diagonal
+      for (int i = 0; i <= 2; i++) {
+        pose_msg->pose.covariance[6 * i + i] = msg->position_covariance[3 * i + i];
+      }
+    }
+  }
 
   g_gps_pose_pub.publish(pose_msg);
 
@@ -109,6 +121,17 @@ int main(int argc, char** argv)
     ROS_WARN("Could not fetch 'sim' param, defaulting to 'false'");
     g_is_sim = false;
   }
+
+  // Specify whether covariances should be set manually or from GPS
+  ros::param::param("~trust_gps", g_trust_gps, false);
+
+  // Get manual parameters
+  ros::param::param("~manual_covariances/position/x", covariance_position_x, 5.0);
+  ros::param::param("~manual_covariances/position/y", covariance_position_y, 5.0);
+  ros::param::param("~manual_covariances/position/z", covariance_position_z, 5.0);
+  ros::param::param("~manual_covariances/orientation/x", covariance_orientation_x, 0.05);
+  ros::param::param("~manual_covariances/orientation/y", covariance_orientation_y, 0.05);
+  ros::param::param("~manual_covariances/orientation/z", covariance_orientation_z, 0.05);
 
   // Wait until GPS reference parameters are initialized.
   double latitude, longitude, altitude;
