@@ -65,7 +65,15 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   pose_msg->pose.pose.position.z = z;
   pose_msg->pose.pose.orientation = g_latest_imu_msg.orientation;
 
-  pose_msg->pose.covariance.assign(0);  // by default
+  pose_msg->pose.covariance.assign(0);
+
+  // Set default covariances
+  pose_msg->pose.covariance[6 * 0 + 0] = covariance_position_x;
+  pose_msg->pose.covariance[6 * 1 + 1] = covariance_position_y;
+  pose_msg->pose.covariance[6 * 2 + 2] = covariance_position_z;
+  pose_msg->pose.covariance[6 * 3 + 3] = covariance_orientation_x;
+  pose_msg->pose.covariance[6 * 4 + 4] = covariance_orientation_y;
+  pose_msg->pose.covariance[6 * 5 + 5] = covariance_orientation_z;
 
   // Take covariances from GPS
   if (trust_gps) {
@@ -75,28 +83,12 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
       pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
       pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
       pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
-      pose_msg->pose.covariance[6 * 3 + 3] = 0.05;
-      pose_msg->pose.covariance[6 * 4 + 4] = 0.05;
-      pose_msg->pose.covariance[6 * 5 + 5] = 0.05;
     } else if (msg->position_covariance_type
         == sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN) {
       pose_msg->pose.covariance[6 * 0 + 0] = msg->position_covariance[3 * 0 + 0];
       pose_msg->pose.covariance[6 * 1 + 1] = msg->position_covariance[3 * 1 + 1];
       pose_msg->pose.covariance[6 * 2 + 2] = msg->position_covariance[3 * 2 + 2];
-      pose_msg->pose.covariance[6 * 3 + 3] = 0.05;
-      pose_msg->pose.covariance[6 * 4 + 4] = 0.05;
-      pose_msg->pose.covariance[6 * 5 + 5] = 0.05;
     }
-  }
-  // Take manual covaraicnes
-  else {
-    ROS_INFO("Setting manual covariances");
-    pose_msg->pose.covariance[6 * 0 + 0] = covariance_position_x;
-    pose_msg->pose.covariance[6 * 1 + 1] = covariance_position_y;
-    pose_msg->pose.covariance[6 * 2 + 2] = covariance_position_z;
-    pose_msg->pose.covariance[6 * 3 + 3] = covariance_orientation_x;
-    pose_msg->pose.covariance[6 * 4 + 4] = covariance_orientation_y;
-    pose_msg->pose.covariance[6 * 5 + 5] = covariance_orientation_z;
   }
 
   g_gps_pose_pub.publish(pose_msg);
