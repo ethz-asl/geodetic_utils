@@ -1,0 +1,49 @@
+<launch>
+
+  <arg name="mav_name" default="colibri"/>
+  <arg name="namespace" default="$(arg mav_name)" />
+
+  <rosparam file="$(find mav_startup)/parameters/capabilities.yaml"/>
+
+  <group ns="$(arg namespace)" >
+
+    <!-- Start GPS converter -->
+    <node name="set_gps_reference_node" pkg="geodetic_utils" type="set_gps_reference_node" clear_params="true" output="screen" args="10"> 
+      <remap from="gps" to="fcu/gps" />
+    </node>
+
+    <node name="gps_to_pose_conversion_node" pkg="geodetic_utils" type="gps_to_pose_conversion_node" clear_params="true" output="screen">
+      <!--Input-->
+      <remap from="gps" to="fcu/gps" />
+      <remap from="imu" to="fcu/imu" />
+      <remap from="pressure_height_point" to="pressure_height_point" />
+
+      <!--Output-->
+      <remap from="gps_pose" to="gps_pose" />
+      <remap from="gps_transform" to="gps_transform" />
+
+      <!--Parameters-->
+      <param name="is_sim" value="false" />
+      <rosparam file="$(find geodetic_utils)/parameters/gps_pose_covariance.yaml"/>
+    </node>
+
+    <node pkg="asctec_hl_comm" type="pressure_point_publisher.py" name="pressure_point_publisher" />
+
+    <!-- Launch MSF state estimator -->
+    <!-- Initialize by running: rosrun dynamic_reconfigure dynparam set /colibri/msf_gps_pose_pressure_estimator/pose_pressure_sensor core_init_filter True -->
+    <node name="msf_gps_pose_pressure_estimator" pkg="msf_updates" type="pose_pressure_sensor" clear_params="true" output="screen">
+      <remap from="msf_core/imu_state_input" to="imu/data_compass" />
+      <remap from="msf_updates/pose_with_covariance_input" to="gps_pose" />
+      <remap from="msf_updates/pressure_height" to="pressure_height_point" />
+
+      <rosparam file="$(find mav_startup)/parameters/common/msf_parameters_gps.yaml"/>
+      <param name="capability_group" value="Sensor Fusion" />
+    </node>
+
+    <node pkg="geodetic_utils" type="odometry_height_adjuster.py" name="odometry_height_adjuster">
+      <remap from="odometry" to="msf_core/odometry" />
+    </node>
+
+  </group>
+
+</launch>

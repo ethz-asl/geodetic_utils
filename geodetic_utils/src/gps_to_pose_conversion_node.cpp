@@ -3,28 +3,39 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/PointStamped.h>
 #include <geodetic_utils/geodetic_conv.hpp>
 
 bool g_is_sim;
+
 geodetic_converter::GeodeticConverter g_geodetic_converter;
 sensor_msgs::Imu g_latest_imu_msg;
+geometry_msgs::PointStamped g_latest_pressure_msg;
 bool g_got_imu;
+bool g_got_pressure;
+
 ros::Publisher g_gps_pose_pub;
 ros::Publisher g_gps_transform_pub;
 
 bool g_trust_gps;
-
-double covariance_position_x;
-double covariance_position_y;
-double covariance_position_z;
-double covariance_orientation_x;
-double covariance_orientation_y;
-double covariance_orientation_z;
+double g_covariance_position_x;
+double g_covariance_position_y;
+double g_covariance_position_z;
+double g_covariance_orientation_x;
+double g_covariance_orientation_y;
+double g_covariance_orientation_z;
 
 void imu_callback(const sensor_msgs::ImuConstPtr& msg)
 {
   g_latest_imu_msg = *msg;
   g_got_imu = true;
+}
+
+void pressure_callback(const geometry_msgs::PointStampedConstPtr& msg)
+{
+  // Only the z value in the PointStamped message is used
+  g_latest_pressure_msg = *msg;
+  g_got_pressure = true;
 }
 
 void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
@@ -65,15 +76,19 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   pose_msg->pose.pose.position.z = z;
   pose_msg->pose.pose.orientation = g_latest_imu_msg.orientation;
 
+  if (g_got_pressure) {
+    pose_msg->pose.pose.position.z = g_latest_pressure_msg.point.z;
+  }
+
   pose_msg->pose.covariance.assign(0);
 
   // Set default covariances
-  pose_msg->pose.covariance[6 * 0 + 0] = covariance_position_x;
-  pose_msg->pose.covariance[6 * 1 + 1] = covariance_position_y;
-  pose_msg->pose.covariance[6 * 2 + 2] = covariance_position_z;
-  pose_msg->pose.covariance[6 * 3 + 3] = covariance_orientation_x;
-  pose_msg->pose.covariance[6 * 4 + 4] = covariance_orientation_y;
-  pose_msg->pose.covariance[6 * 5 + 5] = covariance_orientation_z;
+  pose_msg->pose.covariance[6 * 0 + 0] = g_covariance_position_x;
+  pose_msg->pose.covariance[6 * 1 + 1] = g_covariance_position_y;
+  pose_msg->pose.covariance[6 * 2 + 2] = g_covariance_position_z;
+  pose_msg->pose.covariance[6 * 3 + 3] = g_covariance_orientation_x;
+  pose_msg->pose.covariance[6 * 4 + 4] = g_covariance_orientation_y;
+  pose_msg->pose.covariance[6 * 5 + 5] = g_covariance_orientation_z;
 
   // Take covariances from GPS
   if (g_trust_gps) {
@@ -105,6 +120,10 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   transform_msg->transform.translation.z = z;
   transform_msg->transform.rotation = g_latest_imu_msg.orientation;
 
+  if (g_got_pressure) {
+    transform_msg->transform.translation.z = g_latest_pressure_msg.point.z;
+  }
+
   g_gps_transform_pub.publish(transform_msg);
 }
 
@@ -115,23 +134,26 @@ int main(int argc, char** argv)
   ros::NodeHandle pnh("~");
 
   g_got_imu = false;
+  g_got_pressure = false;
 
   // Use different coordinate transform if using simulator
-  if (!pnh.getParam("sim", g_is_sim)) {
+  if (!pnh.getParam("is_sim", g_is_sim)) {
     ROS_WARN("Could not fetch 'sim' param, defaulting to 'false'");
     g_is_sim = false;
   }
+
+  // FIXME: if parameters not found and using defaults, throw a ROS_WARN
 
   // Specify whether covariances should be set manually or from GPS
   ros::param::param("~trust_gps", g_trust_gps, false);
 
   // Get manual parameters
-  ros::param::param("~manual_covariances/position/x", covariance_position_x, 5.0);
-  ros::param::param("~manual_covariances/position/y", covariance_position_y, 5.0);
-  ros::param::param("~manual_covariances/position/z", covariance_position_z, 5.0);
-  ros::param::param("~manual_covariances/orientation/x", covariance_orientation_x, 0.05);
-  ros::param::param("~manual_covariances/orientation/y", covariance_orientation_y, 0.05);
-  ros::param::param("~manual_covariances/orientation/z", covariance_orientation_z, 0.05);
+  ros::param::param("~fixed_covariance/position/x", g_covariance_position_x, 4.0);
+  ros::param::param("~fixed_covariance/position/y", g_covariance_position_y, 4.0);
+  ros::param::param("~fixed_covariance/position/z", g_covariance_position_z, 100.0);
+  ros::param::param("~fixed_covariance/orientation/x", g_covariance_orientation_x, 0.02);
+  ros::param::param("~fixed_covariance/orientation/y", g_covariance_orientation_y, 0.02);
+  ros::param::param("~fixed_covariance/orientation/z", g_covariance_orientation_z, 0.11);
 
   // Wait until GPS reference parameters are initialized.
   double latitude, longitude, altitude;
@@ -159,6 +181,7 @@ int main(int argc, char** argv)
   // Subscribe to IMU and GPS fixes, and convert in GPS callback
   ros::Subscriber imu_sub = nh.subscribe("imu", 1, &imu_callback);
   ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
+  ros::Subscriber pressure_sub = nh.subscribe("pressure_height_point", 1, &pressure_callback);
 
   ros::spin();
 }

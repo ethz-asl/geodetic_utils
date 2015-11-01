@@ -1,0 +1,20 @@
+# Covariance mode --- how to fill up the covariance matrix in the
+# PoseWithCovarianceStamped message published by gps_to_pose_conversion_node:
+# when trust_gps = true, take covariances from GPS sensor (NavSatFix message)
+# directly;
+# when trust_gps = false, use fixed values below.
+trust_gps: false
+
+fixed_covariance:
+
+# in m^2
+  position:
+    x: 4 # +/- 2 m
+    y: 4 # +/- 2 m
+    z: 0.05 # ...
+
+# in rad^2
+  orientation:
+    x: 0.02 # +/- 10 deg
+    y: 0.02 # +/- 10 deg
+    z: 0.11 # +/- 20 deg
