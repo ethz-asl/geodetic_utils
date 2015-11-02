@@ -8,7 +8,7 @@ from geometry_msgs.msg import Vector3
 from math import *
 import sys
 
-class EulerRadianstoDegrees:
+class EulerRadiansToDegrees:
 
   def __init__(self):
     self.radians_sub = rospy.Subscriber('input_topic', Vector3, self.callback)
