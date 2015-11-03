@@ -1,31 +1,32 @@
 /*
-imu_compass.cpp
-Authors: Prasenjit (pmukherj@clearpathrobotics.com)
-Copyright (c) 2013, Clearpath Robotics, Inc., All rights reserved.
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
-following conditions are met:
+ imu_compass.cpp
+ Authors: Prasenjit (pmukherj@clearpathrobotics.com)
+ Copyright (c) 2013, Clearpath Robotics, Inc., All rights reserved.
+ Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+ following conditions are met:
  * Redistributions of source code must retain the above copyright notice, this list of conditions and the following
-   disclaimer.
+ disclaimer.
  * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following
-   disclaimer in the documentation and/or other materials provided with the distribution.
+ disclaimer in the documentation and/or other materials provided with the distribution.
  * Neither the name of Clearpath Robotics nor the names of its contributors may be used to endorse or promote products
-   derived from this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ derived from this software without specific prior written permission.
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Description:
-CPP file for IMU Compass Class that combines gyroscope and magnetometer data to get a clean estimate of yaw.
-*/
+ Description:
+ CPP file for IMU Compass Class that combines gyroscope and magnetometer data to get a clean estimate of yaw.
+ */
 
 #include "geodetic_utils/imu_compass_asl.h"
 
-double magn(tf::Vector3 a) {
-      return sqrt(a.x()*a.x() + a.y()*a.y() + a.z()*a.z());
+double magn(tf::Vector3 a)
+{
+  return sqrt(a.x() * a.x() + a.y() * a.y() + a.z() * a.z());
 }
 
 IMUCompass::IMUCompass(ros::NodeHandle &n)
@@ -54,11 +55,9 @@ IMUCompass::IMUCompass(ros::NodeHandle &n)
   ros::param::param("~mag_bias_3D/y_scale", mag_3D_y_scale_, 1.0);
   ros::param::param("~mag_bias_3D/z_scale", mag_3D_z_scale_, 1.0);
 
-  if (calibration_mode_ == "2D")
-  {
+  if (calibration_mode_ == "2D") {
     ROS_INFO("Using 2D magnetometer bias (x,y):%f,%f", mag_2D_x_bias_, mag_2D_y_bias_);
-  } else if (calibration_mode_ == "3D")
-  {
+  } else if (calibration_mode_ == "3D") {
     ROS_INFO("Using magnetometer pre-scale factor (x,y,z):%f,%f,%f", mag_3D_x_prescale_,
              mag_3D_y_prescale_, mag_3D_z_prescale_);
     ROS_INFO("Using magnetometer bias (x,y,z):%f,%f,%f", mag_3D_x_bias_, mag_3D_y_bias_,
@@ -76,17 +75,18 @@ IMUCompass::IMUCompass(ros::NodeHandle &n)
   ROS_INFO("Using variance %f", yaw_meas_variance_);
 
   ros::param::param("~compass/mag_declination", mag_declination_, 0.0);
-  ROS_INFO("Using magnetic declination %f (%f degrees)", mag_declination_, mag_declination_ * 180 / M_PI);
+  ROS_INFO("Using magnetic declination %f (%f degrees)", mag_declination_,
+           mag_declination_ * 180 / M_PI);
 
   // Setup Subscribers
   imu_sub_ = node_.subscribe("imu/data", 1000, &IMUCompass::imuCallback, this);
   mag_sub_ = node_.subscribe("imu/mag", 1000, &IMUCompass::magCallback, this);
   decl_sub_ = node_.subscribe("imu/declination", 1000, &IMUCompass::declCallback, this);
-  imu_pub_ = node_.advertise<sensor_msgs::Imu>("imu/data_compass", 1);
-  compass_pub_ = node_.advertise<std_msgs::Float32>("imu/compass_heading", 1);
-  mag_pub_ = node_.advertise<geometry_msgs::Vector3Stamped>("imu/mag_calib", 1);
+  imu_pub_ = node_.advertise < sensor_msgs::Imu > ("imu/data_compass", 1);
+  compass_pub_ = node_.advertise < std_msgs::Float32 > ("imu/compass_heading", 1);
+  mag_pub_ = node_.advertise < geometry_msgs::Vector3Stamped > ("imu/mag_calib", 1);
 
-  raw_compass_pub_ = node_.advertise<std_msgs::Float32>("imu/raw_compass_heading", 1);
+  raw_compass_pub_ = node_.advertise < std_msgs::Float32 > ("imu/raw_compass_heading", 1);
 
   first_mag_reading_ = false;
   first_gyro_reading_ = false;
@@ -97,19 +97,22 @@ IMUCompass::IMUCompass(ros::NodeHandle &n)
   ROS_INFO("Compass Estimator Started");
 }
 
-void IMUCompass::debugCallback(const ros::TimerEvent&) {
+void IMUCompass::debugCallback(const ros::TimerEvent&)
+{
   if (!first_gyro_reading_)
     ROS_WARN("Waiting for IMU data, no gyroscope data available)");
   if (!first_mag_reading_)
     ROS_WARN("Waiting for mag data, no magnetometer data available, Filter not initialized");
 
-  if ((ros::Time::now().toSec() - last_motion_update_time_ > sensor_timeout_) && first_gyro_reading_) {
+  if ((ros::Time::now().toSec() - last_motion_update_time_ > sensor_timeout_)
+      && first_gyro_reading_) {
     // gyro data is coming in too slowly
     ROS_WARN("Gyroscope data being receieved too slow or not at all");
     first_gyro_reading_ = false;
   }
 
-  if ((ros::Time::now().toSec() - last_measurement_update_time_ > sensor_timeout_) && first_mag_reading_) {
+  if ((ros::Time::now().toSec() - last_measurement_update_time_ > sensor_timeout_)
+      && first_mag_reading_) {
     // gyro data is coming in too slowly
     ROS_WARN("Magnetometer data being receieved too slow or not at all");
     filter_initialized_ = false;
@@ -117,13 +120,14 @@ void IMUCompass::debugCallback(const ros::TimerEvent&) {
   }
 }
 
-void IMUCompass::imuCallback(const sensor_msgs::ImuPtr data) {
+void IMUCompass::imuCallback(const sensor_msgs::ImuPtr data)
+{
   // Transform Data and get the yaw direction
   geometry_msgs::Vector3 gyro_vector;
   geometry_msgs::Vector3 gyro_vector_transformed;
   gyro_vector = data->angular_velocity;
 
-  if(!first_gyro_reading_)
+  if (!first_gyro_reading_)
     first_gyro_reading_ = true;
 
   double dt = ros::Time::now().toSec() - last_motion_update_time_;
@@ -141,28 +145,31 @@ void IMUCompass::imuCallback(const sensor_msgs::ImuPtr data) {
   tf::Matrix3x3 transform_mat(transform.getRotation());
   tf::vector3MsgToTF(gyro_vector, orig_bt);
   tf::vector3TFToMsg(orig_bt * transform_mat, gyro_vector_transformed);
-  double yaw_gyro_reading =  gyro_vector_transformed.z;
+  double yaw_gyro_reading = gyro_vector_transformed.z;
 
   // Run Motion Update
   if (filter_initialized_) {
     heading_prediction_ = curr_heading_ + yaw_gyro_reading * dt;  // xp = A*x + B*u
-    heading_variance_prediction_ = curr_heading_variance_ + heading_prediction_variance_; // Sp = A*S*A' + R
+    heading_variance_prediction_ = curr_heading_variance_ + heading_prediction_variance_;  // Sp = A*S*A' + R
 
     if (heading_prediction_ > 3.14159)
       heading_prediction_ -= 2 * 3.14159;
-    else if(heading_prediction_ < -3.14159)
+    else if (heading_prediction_ < -3.14159)
       heading_prediction_ += 2 * 3.14159;
     gyro_update_complete_ = true;
   }
   curr_imu_reading_ = data;
 }
 
-void IMUCompass::declCallback(const std_msgs::Float32& data) {
+void IMUCompass::declCallback(const std_msgs::Float32& data)
+{
   mag_declination_ = data.data;
-  ROS_INFO("Using magnetic declination %f (%f degrees)", mag_declination_, mag_declination_ * 180 / M_PI);
+  ROS_INFO("Using magnetic declination %f (%f degrees)", mag_declination_,
+           mag_declination_ * 180 / M_PI);
 }
 
-void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) {
+void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data)
+{
   geometry_msgs::Vector3 imu_mag = data->vector;
   geometry_msgs::Vector3 imu_mag_transformed;
 
@@ -208,7 +215,7 @@ void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) 
   mag_z = calib_mag.z();
 
   geometry_msgs::Vector3Stamped calibrated_mag;
-  calibrated_mag.header.stamp = ros::Time::now();
+  calibrated_mag.header.stamp = data->header.stamp;  //ros::Time::now();
   calibrated_mag.header.frame_id = "imu_link";
 
   calibrated_mag.vector.x = calib_mag.x();
@@ -222,7 +229,7 @@ void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) 
   tf::Transform curr_imu_meas;
   curr_imu_meas = tf::Transform(q, tf::Vector3(0, 0, 0));
   curr_imu_meas = curr_imu_meas * transform;
-  tf::Quaternion orig (transform.getRotation());
+  tf::Quaternion orig(transform.getRotation());
 
   // Till Compensation
   tf::Matrix3x3 temp(curr_imu_meas.getRotation());
@@ -251,14 +258,15 @@ void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) 
   // If gyro update (motion update) is complete, run measurement update and publish imu data
   if (gyro_update_complete_) {
     // K = Sp*C'*inv(C*Sp*C' + Q)
-    double kalman_gain = heading_variance_prediction_ * (1 / (heading_variance_prediction_ + yaw_meas_variance_));
+    double kalman_gain = heading_variance_prediction_
+        * (1 / (heading_variance_prediction_ + yaw_meas_variance_));
     double innovation = heading_meas - heading_prediction_;
     if (abs(innovation) > M_PI)  // large change, signifies a wraparound. kalman filters don't like discontinuities like wraparounds, handle seperately.
       curr_heading_ = heading_meas;
     else
-      curr_heading_ = heading_prediction_ + kalman_gain * (innovation); // mu = mup + K*(y-C*mup)
+      curr_heading_ = heading_prediction_ + kalman_gain * (innovation);  // mu = mup + K*(y-C*mup)
 
-    curr_heading_variance_ = (1 - kalman_gain) * heading_variance_prediction_; // S = (1-K*C)*Sp
+    curr_heading_variance_ = (1 - kalman_gain) * heading_variance_prediction_;  // S = (1-K*C)*Sp
 
     std_msgs::Float32 raw_heading_float;
     raw_heading_float.data = heading_meas;
@@ -269,7 +277,8 @@ void IMUCompass::magCallback(const geometry_msgs::Vector3StampedConstPtr& data) 
   }
 }
 
-void IMUCompass::repackageImuPublish(tf::StampedTransform transform) {
+void IMUCompass::repackageImuPublish(tf::StampedTransform transform)
+{
   // Get Current IMU reading and Compass heading
   tf::Quaternion imu_reading;
   tf::quaternionMsgToTF(curr_imu_reading_->orientation, imu_reading);
@@ -283,7 +292,8 @@ void IMUCompass::repackageImuPublish(tf::StampedTransform transform) {
 
   // Acquire Quaternion that is the difference between the two readings
   tf::Quaternion compass_yaw = tf::createQuaternionFromRPY(0.0, 0.0, compass_heading);
-  tf::Quaternion diff_yaw = tf::createQuaternionFromRPY(0.0, 0.0, compass_heading - tf::getYaw(imu_reading));
+  tf::Quaternion diff_yaw = tf::createQuaternionFromRPY(0.0, 0.0,
+                                                        compass_heading - tf::getYaw(imu_reading));
 
   // Transform the imu reading by the difference
   tf::Quaternion new_quaternion = diff_yaw * imu_reading;
@@ -301,14 +311,16 @@ void IMUCompass::repackageImuPublish(tf::StampedTransform transform) {
   imu_pub_.publish(curr_imu_reading_);
 }
 
-void IMUCompass::initFilter(double heading_meas) {
+void IMUCompass::initFilter(double heading_meas)
+{
   curr_heading_ = heading_meas;
-  curr_heading_variance_ = 1; // not very sure
+  curr_heading_variance_ = 1;  // not very sure
   filter_initialized_ = true;
   ROS_INFO("Magnetometer data received. Compass estimator initialized");
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   ros::init(argc, argv, "imu_compass_asl");
   ros::NodeHandle node;
   IMUCompass imu_heading_estimator(node);
