@@ -20,7 +20,7 @@ class GpsSpoofer:
     
     def callback(self, data):
         self.fix.header.stamp = data.header.stamp
-        self.pub.publish(fix)        
+        self.pub.publish(self.fix)        
 
 if __name__ == '__main__':
 
