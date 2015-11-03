@@ -11,7 +11,6 @@ if __name__ == '__main__':
         rate = rospy.Rate(5) # 5hz
 
         fix = NavSatFix()
-        fix.header.stamp = rospy.Time.now()
         fix.header.frame_id = 'fcu'
         fix.status.status = 1
         fix.status.service = 1
@@ -21,6 +20,7 @@ if __name__ == '__main__':
         # TODO: fill covariance        
         
         while not rospy.is_shutdown():
+            fix.header.stamp = rospy.Time.now()
             pub.publish(fix)
             rate.sleep()
     except rospy.ROSInterruptException:
