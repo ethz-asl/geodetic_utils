@@ -23,5 +23,5 @@ class EulerRadiansToDegrees:
 
 if __name__ == '__main__':
   rospy.init_node('euler_radians_to_degrees', anonymous=True)
-  node = EulerRadianstoDegrees()
+  node = EulerRadiansToDegrees()
   rospy.spin()
