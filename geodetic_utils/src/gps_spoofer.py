@@ -4,7 +4,7 @@ import rospy
 import random
 from math import *
 
-from sensor_msgs.msg import NavSatFixtransform
+from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, PointStamped
 
@@ -22,12 +22,12 @@ class GpsSpoofer:
 
     self.pose = PoseWithCovarianceStamped()
     self.pose.header.frame_id = 'fcu'
-    self.pose.covariance[6 * 0 + 0] = 1;
-    self.pose.covariance[6 * 1 + 1] = 1;
-    self.pose.covariance[6 * 2 + 2] = 0.1;
-    self.pose.covariance[6 * 3 + 3] = 0.01;
-    self.pose.covariance[6 * 4 + 4] = 0.01;
-    self.pose.covariance[6 * 5 + 5] = 0.01;
+    self.pose.pose.covariance[6 * 0 + 0] = 1;
+    self.pose.pose.covariance[6 * 1 + 1] = 1;
+    self.pose.pose.covariance[6 * 2 + 2] = 0.1;
+    self.pose.pose.covariance[6 * 3 + 3] = 0.01;
+    self.pose.pose.covariance[6 * 4 + 4] = 0.01;
+    self.pose.pose.covariance[6 * 5 + 5] = 0.01;
 
     self.R_noise = 0.0
     self.theta_noise = 0.0
@@ -46,19 +46,26 @@ class GpsSpoofer:
     self.pose.header.stamp = data.header.stamp
     self.pose.pose.pose.position.x = data.pose.pose.position.x
     self.pose.pose.pose.position.y = data.pose.pose.position.y
+    # Take height measurement from vicon
+    self.pose.pose.pose.position.z = data.pose.pose.position.z
+    self.pose.pose.pose.orientation = data.pose.pose.orientation
 
   def callback_pressure_height(self, data):
-    self.pose.pose.pose.position.z = data.point.z
+    # Take height measurement from pressure sensor
+    #self.pose.pose.pose.position.z = data.point.z
+    pass
 
-  def sample_noise(self):
+  def sample_noise(self, event):
+    #print "Resampling noise"
     # Generate noise in x and y
-    self.R_noise = random.uniform(0, 0.01)
+    self.R_noise = 0.0000001 #random.uniform(0, 0.01)
     self.theta_noise = random.uniform(0, 2*pi)
 
-  def publish_odometry(self):
+  def publish_odometry(self, event):
+    #print "Publishing odometry"
     # Add noise
-    self.pose.pose.pose.position.x = self.pose.pose.pose.position.x + R_noise*cos(theta_noise)
-    self.pose.pose.pose.position.y = self.pose.pose.pose.position.y + R_noise*sin(theta_noise)
+    self.pose.pose.pose.position.x = self.pose.pose.pose.position.x + self.R_noise*cos(self.theta_noise)
+    self.pose.pose.pose.position.y = self.pose.pose.pose.position.y + self.R_noise*sin(self.theta_noise)
     self.pub_disturbed_pose.publish(self.pose)
 
 if __name__ == '__main__':
