@@ -29,8 +29,8 @@ class GpsSpoofer:
     self.pose.covariance[6 * 4 + 4] = 0.01;
     self.pose.covariance[6 * 5 + 5] = 0.01;
 
-    # Height from pressure sensor
-    self.height = 0.0
+    self.R_noise = 0.0
+    self.theta_noise = 0.0
 
     self.pub_spoofed_gps = rospy.Publisher('spoofed_gps', NavSatFix, queue_size=1)
     self.pub_disturbed_pose = rospy.Publisher('disturbed_pose',   PoseWithCovarianceStamped, queue_size=1)
@@ -50,10 +50,12 @@ class GpsSpoofer:
   def callback_pressure_height(self, data):
     self.pose.pose.pose.position.z = data.point.z
 
-  def publish_odometry(self):
+  def sample_noise(self):
     # Generate noise in x and y
-    R_noise = random.uniform(0, 0.01)
-    theta_noise = random.uniform(0, 2*pi)
+    self.R_noise = random.uniform(0, 0.01)
+    self.theta_noise = random.uniform(0, 2*pi)
+
+  def publish_odometry(self):
     # Add noise
     self.pose.pose.pose.position.x = self.pose.pose.pose.position.x + R_noise*cos(theta_noise)
     self.pose.pose.pose.position.y = self.pose.pose.pose.position.y + R_noise*sin(theta_noise)
@@ -64,13 +66,8 @@ if __name__ == '__main__':
   try:
     rospy.init_node('gps_spoofer', anonymous=True)
     gs = GpsSpoofer()
-    counter = 0
-    rate = rospy.Rate(10)
-    while not rospy.is_shutdown():
-      if (counter == 50)
-        gs.publish_odometry(gs)
-        counter = 0
-      else
-        counter = counter + 1
+    rospy.Timer(rospy.Duration(5), gs.sample_noise)
+    rospy.Timer(rospy.Duration(0.2), gs.publish_odometry)
+    rospy.spin()
   except rospy.ROSInterruptException:
     pass
