@@ -15,7 +15,7 @@ Creates a reference frame based on initial GPS measurements
 * number of initial GPS measurements to wait for and average over
 
 #### Subscribed Topics:
-* `fcu/gps` ([sensor_msgs/NavSatFix](http://docs.ros.org/api/sensor_msgs/html/msg/NavSatFix.html)) - GPS sensor information
+* `gps` ([sensor_msgs/NavSatFix](http://docs.ros.org/api/sensor_msgs/html/msg/NavSatFix.html)) - GPS sensor information
 
 ### gps_to_pose_conversion_node
 Publishes position information based on GPS measurements and initialised reference frame
