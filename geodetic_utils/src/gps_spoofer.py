@@ -8,7 +8,7 @@ from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, PointStamped
 
-class GpsSpoofer:
+class GPSSpoofer:
   def __init__(self):
     self.fix = NavSatFix()
     #self.fix.header.stamp = ...
@@ -20,22 +20,27 @@ class GpsSpoofer:
     self.fix.altitude = 0.0
     # TODO: fill covariance
 
-    self.pose = PoseWithCovarianceStamped()
-    self.pose.header.frame_id = 'fcu'
-    self.pose.pose.covariance[6 * 0 + 0] = 1;
-    self.pose.pose.covariance[6 * 1 + 1] = 1;
-    self.pose.pose.covariance[6 * 2 + 2] = 0.1;
-    self.pose.pose.covariance[6 * 3 + 3] = 0.01;
-    self.pose.pose.covariance[6 * 4 + 4] = 0.01;
-    self.pose.pose.covariance[6 * 5 + 5] = 0.01;
+    self.pwc = PoseWithCovarianceStamped()
+    self.pwc.header.frame_id = 'fcu'
+    self.pwc.pose.covariance[6 * 0 + 0] = 0.05;
+    self.pwc.pose.covariance[6 * 1 + 1] = 0.05;
+    self.pwc.pose.covariance[6 * 2 + 2] = 0.05;
+    self.pwc.pose.covariance[6 * 3 + 3] = 0.01;
+    self.pwc.pose.covariance[6 * 4 + 4] = 0.01;
+    self.pwc.pose.covariance[6 * 5 + 5] = 0.01;
 
     self.R_noise = 0.0
     self.theta_noise = 0.0
 
+    self.timer_pub = None
+    self.timer_resample = None
+    self.got_odometry = False
+
     self.pub_spoofed_gps = rospy.Publisher('spoofed_gps', NavSatFix, queue_size=1)
-    self.pub_disturbed_pose = rospy.Publisher('disturbed_pose',   PoseWithCovarianceStamped, queue_size=1)
+    self.pub_disturbed_pose = rospy.Publisher('disturbed_pose', PoseWithCovarianceStamped, queue_size=1)
+
     self.sub_gps = rospy.Subscriber('fcu/gps', NavSatFix, self.callback_gps)
-    self.sub_estimated_odometry = rospy.Subscriber('estimated_odometry', Odometry, self.callback_odometry)
+    self.sub_estimated_odometry = rospy.Subscriber('estimated_odometry', Odometry, self.callback_odometry, queue_size=1, tcp_nodelay=True)
     self.sub_pressure_height = rospy.Subscriber('pressure_height_point', PointStamped, self.callback_pressure_height)
 
   def callback_gps(self, data):
@@ -43,38 +48,41 @@ class GpsSpoofer:
     self.pub_spoofed_gps.publish(self.fix)
 
   def callback_odometry(self, data):
-    self.pose.header.stamp = data.header.stamp
-    self.pose.pose.pose.position.x = data.pose.pose.position.x
-    self.pose.pose.pose.position.y = data.pose.pose.position.y
-    # Take height measurement from vicon
-    self.pose.pose.pose.position.z = data.pose.pose.position.z
-    self.pose.pose.pose.orientation = data.pose.pose.orientation
+    #print "Got odometry!"
+    self.pwc.header.stamp = rospy.Time.now() #data.header.stamp
+    self.pwc.pose.pose = data.pose.pose
+    
+    # TODO: Take height measurement from pressure sensor
+    self.pwc.pose.pose.position.z = data.pose.pose.position.z
 
+    if not self.got_odometry:
+        print "GPSSpoofer: initializing timers"
+        self.got_odometry = True
+        self.timer_resample = rospy.Timer(rospy.Duration(5), self.sample_noise)
+        self.timer_pub = rospy.Timer(rospy.Duration(0.02), self.publish_odometry)        
+    
   def callback_pressure_height(self, data):
-    # Take height measurement from pressure sensor
+    # TODO: Take height measurement from pressure sensor
     #self.pose.pose.pose.position.z = data.point.z
     pass
 
   def sample_noise(self, event):
     #print "Resampling noise"
     # Generate noise in x and y
-    self.R_noise = 0.0000001 #random.uniform(0, 0.01)
+    self.R_noise = 0.0 #random.uniform(0, 0.02)
     self.theta_noise = random.uniform(0, 2*pi)
 
   def publish_odometry(self, event):
     #print "Publishing odometry"
-    # Add noise
-    self.pose.pose.pose.position.x = self.pose.pose.pose.position.x + self.R_noise*cos(self.theta_noise)
-    self.pose.pose.pose.position.y = self.pose.pose.pose.position.y + self.R_noise*sin(self.theta_noise)
-    self.pub_disturbed_pose.publish(self.pose)
+    self.pwc.pose.pose.position.x += self.R_noise*cos(self.theta_noise)
+    self.pwc.pose.pose.position.y += self.R_noise*sin(self.theta_noise)
+    self.pub_disturbed_pose.publish(self.pwc)
 
 if __name__ == '__main__':
 
   try:
     rospy.init_node('gps_spoofer', anonymous=True)
-    gs = GpsSpoofer()
-    rospy.Timer(rospy.Duration(5), gs.sample_noise)
-    rospy.Timer(rospy.Duration(0.2), gs.publish_odometry)
+    gs = GPSSpoofer()
     rospy.spin()
   except rospy.ROSInterruptException:
     pass
