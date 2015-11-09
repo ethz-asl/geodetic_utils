@@ -27,7 +27,7 @@ class GPSSpoofer:
     self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
 
     self.pwc = PoseWithCovarianceStamped()
-    self.pwc.header.frame_id = 'fcu'
+    self.pwc.header.frame_id = 'vicon' # doesn't really matter to MSF
     self.pwc.pose.covariance[6 * 0 + 0] = self.pos_var;
     self.pwc.pose.covariance[6 * 1 + 1] = self.pos_var;
     self.pwc.pose.covariance[6 * 2 + 2] = 0.005;
