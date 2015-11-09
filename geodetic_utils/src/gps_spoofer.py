@@ -21,8 +21,8 @@ class GPSSpoofer:
     # TODO: fill GPS covariance
 
     # TODO: load params from param server
-    self.max_R_noise = 0.0 # max tested: 0.1
-    self.pub_period = 0.2
+    self.max_R_noise = 0.0 # [m] max tested: 0.15
+    self.pub_period = 0.2 # [s], publish disturbed pose every X s
 
     self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
 
@@ -57,7 +57,7 @@ class GPSSpoofer:
     #print "max_R_noise = ", self.max_R_noise
     #print "pos_var = ", self.pos_var
 
-    self.pwc.header.stamp = rospy.Time.now() #data.header.stamp
+    self.pwc.header.stamp = rospy.Time.now()
     self.pwc.pose.pose = data.pose.pose
     
     # TODO: Take height measurement from pressure sensor
