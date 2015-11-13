@@ -24,11 +24,11 @@ mag_bias_3D:
      z_prescale: 0.25
      
      # Bias offset values
-     x_bias: -216.895
-     y_bias: 94.4322
-     z_bias: -108.427
+     x_bias: -180.274
+     y_bias: 75.4214
+     z_bias: -121.783
      
      # Scaling factors
-     x_scale: 0.706948
-     y_scale: 0.719264
-     z_scale: 0.781422
+     x_scale: 0.691561
+     y_scale: 0.713204
+     z_scale: 0.774284
