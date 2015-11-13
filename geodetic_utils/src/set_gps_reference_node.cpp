@@ -1,11 +1,17 @@
 #include <ros/ros.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/Imu.h>
 #include <string>
 #include <vector>
 
 double g_lat_ref;
 double g_lon_ref;
 double g_alt_ref;
+double g_yaw_ref;
+
+sensor_msgs::Imu g_latest_imu_msg;
+bool g_got_imu;
+
 std::vector<double> g_pressure_heights;
 int g_its;
 
@@ -16,6 +22,13 @@ enum EMode
 };
 // average over, or wait for, n GPS fixes
 EMode g_mode;
+
+void imu_callback(const sensor_msgs::ImuConstPtr& msg)
+{
+  g_latest_imu_msg = *msg;
+  g_got_imu = true;
+}
+
 
 void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
 {
@@ -30,27 +43,37 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
   g_lat_ref += msg->latitude;
   g_lon_ref += msg->longitude;
   g_alt_ref += msg->altitude;
+  g_yaw_ref += g_latest_imu_msg.orientation.z;
 
-  ROS_INFO("Current measurement: %f, %f, %f", msg->latitude, msg->longitude, msg->altitude);
+  ROS_INFO("Current measurement: %f, %f, %f, %f", msg->latitude, msg->longitude, msg->altitude, g_latest_imu_msg.orientation.z);
+
+  if (!g_got_imu) {
+  ROS_WARN_STREAM_THROTTLE(1, "No IMU data yet");
+  return;
+}
 
   if (count == g_its) {
     if (g_mode == MODE_AVERAGE) {
       g_lat_ref /= g_its;
       g_lon_ref /= g_its;
       g_alt_ref /= g_its;
-    } else {
+      g_yaw_ref /= g_its;
+    }
+    else {
       g_lat_ref = msg->latitude;
       g_lon_ref = msg->longitude;
       g_alt_ref = msg->altitude;
+      g_yaw_ref = g_latest_imu_msg.orientation.z;
     }
 
     ros::NodeHandle nh;
     nh.setParam("/gps_ref_latitude", g_lat_ref);
     nh.setParam("/gps_ref_longitude", g_lon_ref);
     nh.setParam("/gps_ref_altitude", g_alt_ref);
+    nh.setParam("/gps_ref_yaw", g_yaw_ref);
     nh.setParam("/gps_ref_is_init", true);
 
-    ROS_INFO("Final reference position: %f, %f, %f", g_lat_ref, g_lon_ref, g_alt_ref);
+    ROS_INFO("Final reference position: %f, %f, %f, %f", g_lat_ref, g_lon_ref, g_alt_ref, g_yaw_ref);
 
     ros::shutdown();
     return;
@@ -98,8 +121,8 @@ int main(int argc, char** argv)
       "Taking %d measurements and %s\n", g_its,
       (g_mode == MODE_AVERAGE) ? "averaging to get the reference" : "taking the last as reference");
 
+  ros::Subscriber imu_sub = nh.subscribe("imu", 1, &imu_callback);
   ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
 
   ros::spin();
 }
-
