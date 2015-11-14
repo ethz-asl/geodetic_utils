@@ -309,7 +309,7 @@ void IMUCompass::repackageImuPublish(tf::StampedTransform transform)
 
   //std::cout << "rpy: " << hroll << ", " << hpitch << " ," << hyaw << std::endl;
 
-  tf::Quaternion hackq = tf::createQuaternionFromRPY(hroll, hpitch, -(hyaw+M_PI/2));
+  tf::Quaternion hackq = tf::createQuaternionFromRPY(hroll, hpitch, -(hyaw+M_PI/2.0));
 
   //tf::quaternionTFToMsg(o_imu_reading.getRotation(), curr_imu_reading_->orientation);
   tf::quaternionTFToMsg(hackq, curr_imu_reading_->orientation);
