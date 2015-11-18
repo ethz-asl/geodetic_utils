@@ -78,8 +78,6 @@ class GPSSpoofer:
     #self.pwc.pose.pose.position.y = y
     self.pwc.pose.pose.position.z = data.pose.pose.position.z
 
-    #qENUVicon = tf.transformations.quaternion_from_euler(0, 0, angle)
-
     self.pwc.pose.pose.orientation = self.latest_imu_message.orientation
 
 
