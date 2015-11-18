@@ -4,9 +4,10 @@ import rospy
 import random
 from math import *
 
-from sensor_msgs.msg import NavSatFix
+from sensor_msgs.msg import NavSatFix, Imu
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, PointStamped
+import tf
 
 class GPSSpoofer:
   def __init__(self):
@@ -25,6 +26,8 @@ class GPSSpoofer:
     self.pub_period = 0.2 # [s], publish disturbed pose every X s
 
     self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
+
+    self.latest_imu_message = Imu()
 
     self.pwc = PoseWithCovarianceStamped()
     self.pwc.header.frame_id = 'vicon' # doesn't really matter to MSF
@@ -46,6 +49,7 @@ class GPSSpoofer:
 
     self.sub_gps = rospy.Subscriber('fcu/gps', NavSatFix, self.callback_gps, tcp_nodelay=True)
     self.sub_estimated_odometry = rospy.Subscriber('estimated_odometry', Odometry, self.callback_odometry, queue_size=1, tcp_nodelay=True)
+    self.sub_imu = rospy.Subscriber('imu/data_compass', Imu, self.callback_imu, queue_size=1, tcp_nodelay=True)
     self.sub_pressure_height = rospy.Subscriber('pressure_height_point', PointStamped, self.callback_pressure_height, queue_size=1, tcp_nodelay=True)
 
   def callback_gps(self, data):
@@ -58,17 +62,36 @@ class GPSSpoofer:
     #print "pos_var = ", self.pos_var
 
     self.pwc.header.stamp = rospy.Time.now()
-    self.pwc.pose.pose = data.pose.pose
-    
+#    self.pwc.pose.pose = data.pose.pose
+
+    # Rotate x and y to align x to East
+    x = data.pose.pose.position.x
+    y = data.pose.pose.position.y
+
+    angle = radians(-30)
+
+    self.pwc.pose.pose.position.x = cos(angle)*x - sin(angle)*y
+    self.pwc.pose.pose.position.y = sin(angle)*x + sin(angle)*y
+
     # TODO: Take height measurement from pressure sensor
+    #self.pwc.pose.pose.position.x = x
+    #self.pwc.pose.pose.position.y = y
     self.pwc.pose.pose.position.z = data.pose.pose.position.z
+
+    #qENUVicon = tf.transformations.quaternion_from_euler(0, 0, angle)
+
+    self.pwc.pose.pose.orientation = self.latest_imu_message.orientation
+
 
     if not self.got_odometry:
         print "GPSSpoofer: initializing timers"
         self.got_odometry = True
         self.timer_resample = rospy.Timer(rospy.Duration(5), self.sample_noise)
         self.timer_pub = rospy.Timer(rospy.Duration(self.pub_period), self.publish_odometry)
-    
+
+  def callback_imu(self, data):
+    self.latest_imu_message = data
+
   def callback_pressure_height(self, data):
     # TODO: Take height measurement from pressure sensor
     #self.pose.pose.pose.position.z = data.point.z
