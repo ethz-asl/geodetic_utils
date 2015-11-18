@@ -71,7 +71,7 @@ class GPSSpoofer:
     angle = radians(-30)
 
     self.pwc.pose.pose.position.x = cos(angle)*x - sin(angle)*y
-    self.pwc.pose.pose.position.y = sin(angle)*x + sin(angle)*y
+    self.pwc.pose.pose.position.y = sin(angle)*x + cos(angle)*y
 
     # TODO: Take height measurement from pressure sensor
     #self.pwc.pose.pose.position.x = x
