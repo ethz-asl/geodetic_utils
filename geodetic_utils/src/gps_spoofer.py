@@ -23,9 +23,10 @@ class GPSSpoofer:
 
     # TODO: load params from param server
     self.max_R_noise = 0.0 # [m] max tested: 0.15
-    self.pub_period = 0.2 # [s], publish disturbed pose every X s
+    self.pub_period = 0.05 # [s], publish disturbed pose every X s
 
-    self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
+#    self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
+    self.pos_var = 0.005;
 
     self.latest_imu_message = Imu()
 
@@ -74,8 +75,6 @@ class GPSSpoofer:
     self.pwc.pose.pose.position.y = sin(angle)*x + cos(angle)*y
 
     # TODO: Take height measurement from pressure sensor
-    #self.pwc.pose.pose.position.x = x
-    #self.pwc.pose.pose.position.y = y
     self.pwc.pose.pose.position.z = data.pose.pose.position.z
 
     self.pwc.pose.pose.orientation = self.latest_imu_message.orientation
