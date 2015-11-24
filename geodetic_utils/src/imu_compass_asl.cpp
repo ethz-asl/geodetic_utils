@@ -311,6 +311,9 @@ void IMUCompass::repackageImuPublish(tf::StampedTransform transform)
 
   tf::Quaternion hackq = tf::createQuaternionFromRPY(hroll, hpitch, -(hyaw+M_PI/2));
 
+  // Change coordinate frame from NED to ENU for yaw velocity
+  //curr_imu_reading_->angular_velocity.z = //-curr_imu_reading_->angular_velocity.z;
+
   //tf::quaternionTFToMsg(o_imu_reading.getRotation(), curr_imu_reading_->orientation);
   tf::quaternionTFToMsg(hackq, curr_imu_reading_->orientation);
 

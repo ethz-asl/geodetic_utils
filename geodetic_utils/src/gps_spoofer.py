@@ -22,8 +22,8 @@ class GPSSpoofer:
     # TODO: fill GPS covariance
 
     # TODO: load params from param server
-    self.max_R_noise = 0.05# [m] max tested: 0.15
-    self.pub_period = 0.2 # [s], publish disturbed pose every X s
+    self.max_R_noise = 0.0 # [m] max tested: 0.15
+    self.pub_period = 0.2  # [s], publish disturbed pose every X s
 
   #  self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
   #  self.pos_var = 0.005;
@@ -32,12 +32,12 @@ class GPSSpoofer:
 
     self.pwc = PoseWithCovarianceStamped()
     self.pwc.header.frame_id = 'vicon' # doesn't really matter to MSF
-    self.pwc.pose.covariance[6 * 0 + 0] = 0.03;
-    self.pwc.pose.covariance[6 * 1 + 1] = 0.03;
-    self.pwc.pose.covariance[6 * 2 + 2] = 0.005;
-    self.pwc.pose.covariance[6 * 3 + 3] = 0.05;
-    self.pwc.pose.covariance[6 * 4 + 4] = 0.05;
-    self.pwc.pose.covariance[6 * 5 + 5] = 0.05;
+    self.pwc.pose.covariance[6 * 0 + 0] = 0.00025;
+    self.pwc.pose.covariance[6 * 1 + 1] = 0.00025;
+    self.pwc.pose.covariance[6 * 2 + 2] = 0.000025;
+    self.pwc.pose.covariance[6 * 3 + 3] = 0.0025;
+    self.pwc.pose.covariance[6 * 4 + 4] = 0.0025;
+    self.pwc.pose.covariance[6 * 5 + 5] = 0.0025;
 
     self.R_noise = 0.0
     self.theta_noise = 0.0
@@ -69,7 +69,7 @@ class GPSSpoofer:
     x = data.pose.pose.position.x
     y = data.pose.pose.position.y
 
-    angle = radians(140)
+    angle = radians(-7.0)
 
     self.pwc.pose.pose.position.x = cos(angle)*x - sin(angle)*y
     self.pwc.pose.pose.position.y = sin(angle)*x + cos(angle)*y
