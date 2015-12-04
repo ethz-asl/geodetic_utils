@@ -7,7 +7,6 @@ from math import *
 from sensor_msgs.msg import NavSatFix, Imu
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, PointStamped
-from std_msgs.msg import Float64
 import tf
 
 class GPSSpoofer:
@@ -21,8 +20,6 @@ class GPSSpoofer:
     self.fix.longitude = 44.0
     self.fix.altitude = 0.0
     # TODO: fill GPS covariance
-
-    self.altitude = Float64()
 
     # TODO: load params from param server
     self.max_R_noise = 0.0 # [m] max tested: 0.15
@@ -55,10 +52,12 @@ class GPSSpoofer:
     self.pub_disturbed_pose = rospy.Publisher('disturbed_pose', PoseWithCovarianceStamped, queue_size=1,  tcp_nodelay=True)
     self.pub_point = rospy.Publisher('vicon_point', PointStamped, queue_size=1,  tcp_nodelay=True)    
 
-    self.sub_altitude = rospy.Subscriber('laser_altitude', Float64, self.callback_altitude, tcp_nodelay=True)
-    self.sub_gps = rospy.Subscriber('fcu/gps', NavSatFix, self.callback_gps, tcp_nodelay=True)
+    self.sub_gps = rospy.Subscriber('fcu/gps', NavSatFix, self.callback_gps, tcp_nodelay=True
+self.sub_gps = rospy.Subscriber('fcu/gps', NavSatFix, self.callback_gps, tcp_nodelay=True)
+)
     self.sub_estimated_odometry = rospy.Subscriber('estimated_odometry', Odometry, self.callback_odometry, queue_size=1, tcp_nodelay=True)
     self.sub_imu = rospy.Subscriber('fcu/imu', Imu, self.callback_imu, queue_size=1, tcp_nodelay=True)
+    self.sub_pressure_height = rospy.Subscriber('pressure_height_point', PointStamped, self.callback_pressure_height, queue_size=1, tcp_nodelay=True)
 
   def callback_gps(self, data):
     self.fix.header.stamp = data.header.stamp
@@ -72,25 +71,26 @@ class GPSSpoofer:
     self.pwc.header.stamp = rospy.Time.now()
 #    self.pwc.pose.pose = data.pose.pose
 
+    # Rotate x and y to align x to East
     x = data.pose.pose.position.x
     y = data.pose.pose.position.y
 
     #angle = radians(-7.0) #imu compass
     angle = -2.73
 
-    # Rotate x and y to align x to East
     self.pwc.pose.pose.position.x = cos(angle)*x - sin(angle)*y
     self.pwc.pose.pose.position.y = sin(angle)*x + cos(angle)*y
 
-    # TODO: Take height measurement from laser
+    # TODO: Take height measurement from pressure sensor
     self.pwc.pose.pose.position.z = data.pose.pose.position.z
+
     self.pwc.pose.pose.orientation = self.latest_imu_message.orientation
 
-    # Take x and y from vicon, take altitude from laser
+
     self.point.header = self.pwc.header
     self.point.point.x = x
     self.point.point.y = y
-    self.point.point.z = self.altitude.data
+    self.point.point.z = data.pose.pose.position.z
 
     if not self.got_odometry:
         print "GPSSpoofer: initializing timers"
@@ -101,8 +101,10 @@ class GPSSpoofer:
   def callback_imu(self, data):
     self.latest_imu_message = data
 
-  def callback_altitude(self, data):
-    self.altitude = data
+  def callback_pressure_height(self, data):
+    # TODO: Take height measurement from pressure sensor
+    #self.pose.pose.pose.position.z = data.point.z
+    pass
 
   def sample_noise(self, event):
     #print "Resampling noise"
