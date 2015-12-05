@@ -40,8 +40,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
       g_lat_ref /= g_its;
       g_lon_ref /= g_its;
       g_alt_ref /= g_its;
-    }
-    else {
+    } else {
       g_lat_ref = msg->latitude;
       g_lon_ref = msg->longitude;
       g_alt_ref = msg->altitude;
