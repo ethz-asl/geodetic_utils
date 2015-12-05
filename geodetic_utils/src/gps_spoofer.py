@@ -70,8 +70,9 @@ class GPSSpoofer:
     #print "pos_var = ", self.pos_var
 
     self.pwc.header.stamp = rospy.Time.now()
-#    self.pwc.pose.pose = data.pose.pose
 
+    # Pose message
+#    self.pwc.pose.pose = data.pose.pose
     x = data.pose.pose.position.x
     y = data.pose.pose.position.y
 
@@ -86,6 +87,7 @@ class GPSSpoofer:
     self.pwc.pose.pose.position.z = data.pose.pose.position.z
     self.pwc.pose.pose.orientation = self.latest_imu_message.orientation
 
+    # Point message
     # Take x and y from vicon, take altitude from laser
     self.point.header = self.pwc.header
     self.point.point.x = x
