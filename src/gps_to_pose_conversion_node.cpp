@@ -1,3 +1,9 @@
+/*
+  Use altitude from 'external_altitude' topic if messages are received
+  (To enable the messages arriving, publish to the topic by remapping in the launch file
+  Otherwise, altitude from GPS is taken
+*/
+
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
@@ -85,8 +91,10 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   position_msg->header.frame_id = "world";
   position_msg->point = pose_msg->pose.pose.position;
 
+  // If external altitude messages received, include in pose and position messages
   if (g_got_altitude) {
     pose_msg->pose.pose.position.z = g_latest_altitude_msg.data;
+    position_msg->point.z = g_latest_altitude_msg.data;
   }
 
   pose_msg->pose.covariance.assign(0);
