@@ -1,3 +1,9 @@
+/*
+  Use altitude from 'external_altitude' topic if messages are received
+  (To enable the messages arriving, publish to the topic by remapping in the launch file
+  Otherwise, altitude from GPS is taken
+*/
+
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
@@ -5,17 +11,19 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geodetic_utils/geodetic_conv.hpp>
+#include <std_msgs/Float64.h>
 
 bool g_is_sim;
 
 geodetic_converter::GeodeticConverter g_geodetic_converter;
 sensor_msgs::Imu g_latest_imu_msg;
-geometry_msgs::PointStamped g_latest_pressure_msg;
+std_msgs::Float64 g_latest_altitude_msg;
 bool g_got_imu;
-bool g_got_pressure;
+bool g_got_altitude;
 
 ros::Publisher g_gps_pose_pub;
 ros::Publisher g_gps_transform_pub;
+ros::Publisher g_gps_position_pub;
 
 bool g_trust_gps;
 double g_covariance_position_x;
@@ -31,11 +39,11 @@ void imu_callback(const sensor_msgs::ImuConstPtr& msg)
   g_got_imu = true;
 }
 
-void pressure_callback(const geometry_msgs::PointStampedConstPtr& msg)
+void altitude_callback(const std_msgs::Float64ConstPtr& msg)
 {
   // Only the z value in the PointStamped message is used
-  g_latest_pressure_msg = *msg;
-  g_got_pressure = true;
+  g_latest_altitude_msg = *msg;
+  g_got_altitude = true;
 }
 
 void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
@@ -76,8 +84,17 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   pose_msg->pose.pose.position.z = z;
   pose_msg->pose.pose.orientation = g_latest_imu_msg.orientation;
 
-  if (g_got_pressure) {
-    pose_msg->pose.pose.position.z = g_latest_pressure_msg.point.z;
+  // Fill up position message
+  geometry_msgs::PointStampedPtr position_msg(
+    new geometry_msgs::PointStamped);
+  position_msg->header = pose_msg->header;
+  position_msg->header.frame_id = "world";
+  position_msg->point = pose_msg->pose.pose.position;
+
+  // If external altitude messages received, include in pose and position messages
+  if (g_got_altitude) {
+    pose_msg->pose.pose.position.z = g_latest_altitude_msg.data;
+    position_msg->point.z = g_latest_altitude_msg.data;
   }
 
   pose_msg->pose.covariance.assign(0);
@@ -110,6 +127,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   }
 
   g_gps_pose_pub.publish(pose_msg);
+  g_gps_position_pub.publish(position_msg);
 
   // Fill up transform message
   geometry_msgs::TransformStampedPtr transform_msg(new geometry_msgs::TransformStamped);
@@ -120,8 +138,8 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   transform_msg->transform.translation.z = z;
   transform_msg->transform.rotation = g_latest_imu_msg.orientation;
 
-  if (g_got_pressure) {
-    transform_msg->transform.translation.z = g_latest_pressure_msg.point.z;
+  if (g_got_altitude) {
+    transform_msg->transform.translation.z = g_latest_altitude_msg.data;
   }
 
   g_gps_transform_pub.publish(transform_msg);
@@ -134,7 +152,7 @@ int main(int argc, char** argv)
   ros::NodeHandle pnh("~");
 
   g_got_imu = false;
-  g_got_pressure = false;
+  g_got_altitude = false;
 
   // Use different coordinate transform if using simulator
   if (!pnh.getParam("is_sim", g_is_sim)) {
@@ -177,11 +195,12 @@ int main(int argc, char** argv)
   // Initialize publishers
   g_gps_pose_pub = nh.advertise < geometry_msgs::PoseWithCovarianceStamped > ("gps_pose", 1);
   g_gps_transform_pub = nh.advertise < geometry_msgs::TransformStamped > ("gps_transform", 1);
+  g_gps_position_pub = nh.advertise < geometry_msgs::PointStamped > ("gps_position", 1);
 
   // Subscribe to IMU and GPS fixes, and convert in GPS callback
   ros::Subscriber imu_sub = nh.subscribe("imu", 1, &imu_callback);
   ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
-  ros::Subscriber pressure_sub = nh.subscribe("pressure_height_point", 1, &pressure_callback);
+  ros::Subscriber altitude_sub = nh.subscribe("external_altitude", 1, &altitude_callback);
 
   ros::spin();
 }

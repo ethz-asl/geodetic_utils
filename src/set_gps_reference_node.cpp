@@ -6,6 +6,7 @@
 double g_lat_ref;
 double g_lon_ref;
 double g_alt_ref;
+
 std::vector<double> g_pressure_heights;
 int g_its;
 
@@ -16,6 +17,7 @@ enum EMode
 };
 // average over, or wait for, n GPS fixes
 EMode g_mode;
+
 
 void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
 {
@@ -102,4 +104,3 @@ int main(int argc, char** argv)
 
   ros::spin();
 }
-
