@@ -2,10 +2,13 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <string>
 #include <vector>
+#include <std_srvs/Empty.h>
 
 double g_lat_ref;
 double g_lon_ref;
 double g_alt_ref;
+int count = 1;
+bool gps_ref_is_init;
 
 std::vector<double> g_pressure_heights;
 int g_its;
@@ -18,49 +21,63 @@ enum EMode
 // average over, or wait for, n GPS fixes
 EMode g_mode;
 
+bool reset_callback(std_srvs::Empty::Request&, std_srvs::Empty::Response&)
+{
+  count = 1;
+  g_lat_ref = 0.0;
+  g_lon_ref = 0.0;
+  g_alt_ref = 0.0;
+  ros::NodeHandle nh;
+  nh.setParam("/gps_ref_is_init", false);
+  return true;
+}
 
 void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
 {
+  ros::NodeHandle nh;
+  nh.getParam("/gps_ref_is_init", gps_ref_is_init);
+  
+  if (!gps_ref_is_init){
 
-  static int count = 1;
 
-  if (msg->status.status < sensor_msgs::NavSatStatus::STATUS_FIX) {
-    ROS_WARN_STREAM_THROTTLE(1, "No GPS fix");
-    return;
-  }
-
-  g_lat_ref += msg->latitude;
-  g_lon_ref += msg->longitude;
-  g_alt_ref += msg->altitude;
-
-  ROS_INFO("Current measurement: %f, %f, %f", msg->latitude, msg->longitude, msg->altitude);
-
-  if (count == g_its) {
-    if (g_mode == MODE_AVERAGE) {
-      g_lat_ref /= g_its;
-      g_lon_ref /= g_its;
-      g_alt_ref /= g_its;
-    } else {
-      g_lat_ref = msg->latitude;
-      g_lon_ref = msg->longitude;
-      g_alt_ref = msg->altitude;
+    if (msg->status.status < sensor_msgs::NavSatStatus::STATUS_FIX) {
+      ROS_WARN_STREAM_THROTTLE(1, "No GPS fix");
+      return;
     }
 
-    ros::NodeHandle nh;
-    nh.setParam("/gps_ref_latitude", g_lat_ref);
-    nh.setParam("/gps_ref_longitude", g_lon_ref);
-    nh.setParam("/gps_ref_altitude", g_alt_ref);
-    nh.setParam("/gps_ref_is_init", true);
+    g_lat_ref += msg->latitude;
+    g_lon_ref += msg->longitude;
+    g_alt_ref += msg->altitude;
 
-    ROS_INFO("Final reference position: %f, %f, %f", g_lat_ref, g_lon_ref, g_alt_ref);
+    ROS_INFO("Current measurement: %f, %f, %f", msg->latitude, msg->longitude, msg->altitude);
 
-    ros::shutdown();
-    return;
-  } else {
-    ROS_INFO("    Still waiting for %d measurements", g_its - count);
-  }
+    if (count == g_its) {
+      if (g_mode == MODE_AVERAGE) {
+        g_lat_ref /= g_its;
+        g_lon_ref /= g_its;
+        g_alt_ref /= g_its;
+      } else {
+        g_lat_ref = msg->latitude;
+        g_lon_ref = msg->longitude;
+        g_alt_ref = msg->altitude;
+      }
+
+
+      nh.setParam("/gps_ref_latitude", g_lat_ref);
+      nh.setParam("/gps_ref_longitude", g_lon_ref);
+      nh.setParam("/gps_ref_altitude", g_alt_ref);
+      nh.setParam("/gps_ref_is_init", true);
+
+      ROS_INFO("Final reference position: %f, %f, %f", g_lat_ref, g_lon_ref, g_alt_ref);
+
+      //ros::shutdown();
+      return;
+    } else {
+      ROS_INFO("    Still waiting for %d measurements", g_its - count);
+    }
 
   count++;
+  }
 }
 
 int main(int argc, char** argv)
@@ -101,6 +118,7 @@ int main(int argc, char** argv)
       (g_mode == MODE_AVERAGE) ? "averaging to get the reference" : "taking the last as reference");
 
   ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
+  ros::ServiceServer reset_srv = nh.advertiseService("reset_gps_reference", &reset_callback);
 
   ros::spin();
 }
