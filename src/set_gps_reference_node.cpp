@@ -7,10 +7,8 @@
 double g_lat_ref;
 double g_lon_ref;
 double g_alt_ref;
-int count = 1;
+int g_count = 1;
 bool gps_ref_is_init;
-
-std::vector<double> g_pressure_heights;
 int g_its;
 
 enum EMode
@@ -23,7 +21,7 @@ EMode g_mode;
 
 bool reset_callback(std_srvs::Empty::Request&, std_srvs::Empty::Response&)
 {
-  count = 1;
+  g_count = 1;
   g_lat_ref = 0.0;
   g_lon_ref = 0.0;
   g_alt_ref = 0.0;
@@ -36,7 +34,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
 {
   ros::NodeHandle nh;
   nh.getParam("/gps_ref_is_init", gps_ref_is_init);
-  
+
   if (!gps_ref_is_init){
 
 
@@ -51,7 +49,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
 
     ROS_INFO("Current measurement: %f, %f, %f", msg->latitude, msg->longitude, msg->altitude);
 
-    if (count == g_its) {
+    if (g_count == g_its) {
       if (g_mode == MODE_AVERAGE) {
         g_lat_ref /= g_its;
         g_lon_ref /= g_its;
@@ -70,13 +68,12 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
 
       ROS_INFO("Final reference position: %f, %f, %f", g_lat_ref, g_lon_ref, g_alt_ref);
 
-      //ros::shutdown();
       return;
     } else {
-      ROS_INFO("    Still waiting for %d measurements", g_its - count);
+      ROS_INFO("    Still waiting for %d measurements", g_its - g_count);
     }
 
-  count++;
+  g_count++;
   }
 }
 

@@ -13,8 +13,8 @@ cs_add_executable(set_gps_reference_node src/set_gps_reference_node.cpp)
 target_link_libraries(set_gps_reference_node  ${catkin_LIBRARIES})
 
 cs_add_executable(gps_to_pose_conversion_node src/gps_to_pose_conversion_node.cpp)
-target_link_libraries(gps_to_pose_conversion_node  ${catkin_LIBRARIES})
+#target_link_libraries(gps_to_pose_conversion_node  ${catkin_LIBRARIES})
 
 cs_install()
-cs_install_scripts(src/gps_spoofer.py src/euler_radians_to_degrees.py src/odometry_height_adjuster.py)
+cs_install_scripts(src/gps_spoofer.py src/euler_radians_to_degrees.py)
 cs_export()
