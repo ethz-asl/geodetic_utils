@@ -6,6 +6,7 @@
 
   <author>Enric Galceran</author>
   <author>Marija Popovic</author>
+  <author>Raghav Khanna</author>
 
   <maintainer email="enric.galceran@mavt.ethz.ch">Enric Galceran</maintainer>
   <license>BSD</license>
@@ -13,10 +14,12 @@
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
 
+   <!-- Dependencies. -->
   <depend>roslib</depend>
   <depend>roscpp</depend>
   <depend>tf</depend>
   <depend>sensor_msgs</depend>
-  <depend>geometry_msgs</depend>  
+  <depend>geometry_msgs</depend>
+  <!--cmake_modules dependency required for (find Eigen) command-->
+  <depend>cmake_modules</depend>
 </package>
-
