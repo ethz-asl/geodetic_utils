@@ -24,11 +24,11 @@ class GPSSpoofer:
 
     self.altitude = Float64()
     
-    self.altitude_input = rospy.get_param('altitude_input', 'vicon')
+    self.altitude_input = rospy.get_param('~altitude_input', 'vicon')
 
     # TODO: load params from param server
     self.max_R_noise = 0.0 # [m] max tested: 0.15
-    self.pub_period = 0.2  # [s], publish disturbed pose every X s
+    self.pub_period = 0.1  # [s], publish disturbed pose every X s
 
   #  self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
   #  self.pos_var = 0.005;
@@ -100,6 +100,7 @@ class GPSSpoofer:
         self.pwc.pose.pose.position.z = data.pose.pose.position.z
         self.point.point.z = data.pose.pose.position.z
     elif (self.altitude_input == 'external'):
+        #print 'Got laser data'
         self.pwc.pose.pose.position.z = self.altitude.data
         self.point.point.z = self.altitude.data
     else:
