@@ -14,7 +14,7 @@ class GPSSpoofer:
   def __init__(self):
     # Parameters
     self.altitude_input = rospy.get_param('~altitude_input', 'vicon')
-    self.pose_publisher = rospy.get_param('~publish_pose', True)
+    self.publish_pose = rospy.get_param('~publish_pose', True)
 
     # TODO: load params from param server
     self.max_R_noise = 0.0  # [m] max tested: 0.15
@@ -102,7 +102,7 @@ class GPSSpoofer:
         self.pwc.pose.pose.position.z = self.latest_altitude_message.data
         self.point.point.z = self.latest_altitude_message.data
     else:
-        ROS_WARN("Unknown altitude input parameter")
+        rospy.signal_shutdown("Unknown altitude input parameter")
 
     if not self.got_odometry:
         print "GPSSpoofer: initializing timers"
@@ -127,7 +127,7 @@ class GPSSpoofer:
     self.pwc.pose.pose.position.x += self.R_noise*cos(self.theta_noise)
     self.pwc.pose.pose.position.y += self.R_noise*sin(self.theta_noise)
 
-    if (self.pose_publisher == True):
+    if (self.publish_pose == True):
         self.pub_disturbed_pose.publish(self.pwc)
 
     self.point.point.x += self.R_noise*cos(self.theta_noise)
