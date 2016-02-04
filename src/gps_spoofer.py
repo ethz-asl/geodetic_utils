@@ -9,6 +9,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, PointStamped
 from std_msgs.msg import Float64
 import tf
+import sys
 
 class GPSSpoofer:
   def __init__(self):
@@ -103,6 +104,7 @@ class GPSSpoofer:
         self.point.point.z = self.latest_altitude_message.data
     else:
         rospy.signal_shutdown("Unknown altitude input parameter")
+        sys.exit()
 
     if not self.got_odometry:
         print "GPSSpoofer: initializing timers"
