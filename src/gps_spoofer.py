@@ -9,9 +9,20 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped, PointStamped
 from std_msgs.msg import Float64
 import tf
+import sys
 
 class GPSSpoofer:
   def __init__(self):
+    # Parameters
+    self.altitude_input = rospy.get_param('~altitude_input', 'vicon')
+    self.publish_pose = rospy.get_param('~publish_pose', True)
+
+    # TODO: load params from param server
+    self.max_R_noise = 0.0  # [m] max tested: 0.15
+    self.pub_period = 0.1   # [s], publish disturbed pose every X s
+  #  self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
+  #  self.pos_var = 0.005;
+
     self.fix = NavSatFix()
     #self.fix.header.stamp = ...
     self.fix.header.frame_id = 'fcu'
@@ -22,17 +33,7 @@ class GPSSpoofer:
     self.fix.altitude = 0.0
     # TODO: fill GPS covariance
 
-    self.altitude = Float64()
-    
-    self.altitude_input = rospy.get_param('altitude_input', 'vicon')
-
-    # TODO: load params from param server
-    self.max_R_noise = 0.0 # [m] max tested: 0.15
-    self.pub_period = 0.2  # [s], publish disturbed pose every X s
-
-  #  self.pos_var = pow(max(0.0707, self.max_R_noise/2.0), 2)
-  #  self.pos_var = 0.005;
-
+    self.latest_altitude_message = Float64()
     self.latest_imu_message = Imu()
 
     self.pwc = PoseWithCovarianceStamped()
@@ -55,7 +56,7 @@ class GPSSpoofer:
 
     self.pub_spoofed_gps = rospy.Publisher('spoofed_gps', NavSatFix, queue_size=1)
     self.pub_disturbed_pose = rospy.Publisher('disturbed_pose', PoseWithCovarianceStamped, queue_size=1,  tcp_nodelay=True)
-    self.pub_point = rospy.Publisher('vicon_point', PointStamped, queue_size=1,  tcp_nodelay=True)    
+    self.pub_point = rospy.Publisher('vicon_point', PointStamped, queue_size=1,  tcp_nodelay=True)
 
     self.sub_altitude = rospy.Subscriber('laser_altitude', Float64, self.callback_altitude, tcp_nodelay=True)
     self.sub_gps = rospy.Subscriber('gps', NavSatFix, self.callback_gps, tcp_nodelay=True)
@@ -79,7 +80,6 @@ class GPSSpoofer:
     y = data.pose.pose.position.y
 
     # Angle between vi-con x axis and ENU East-aligned x axis
-    #angle = radians(-7.0) #imu compass
     angle = -2.73
 
     # Rotate x and y to align x to East
@@ -100,10 +100,11 @@ class GPSSpoofer:
         self.pwc.pose.pose.position.z = data.pose.pose.position.z
         self.point.point.z = data.pose.pose.position.z
     elif (self.altitude_input == 'external'):
-        self.pwc.pose.pose.position.z = self.altitude.data
-        self.point.point.z = self.altitude.data
+        self.pwc.pose.pose.position.z = self.latest_altitude_message.data
+        self.point.point.z = self.latest_altitude_message.data
     else:
-        ROS_WARN("Unknown altitude input parameter")
+        rospy.signal_shutdown("Unknown altitude input parameter")
+        sys.exit()
 
     if not self.got_odometry:
         print "GPSSpoofer: initializing timers"
@@ -115,7 +116,7 @@ class GPSSpoofer:
     self.latest_imu_message = data
 
   def callback_altitude(self, data):
-    self.altitude = data
+    self.latest_altitude_message = data
 
   def sample_noise(self, event):
     #print "Resampling noise"
@@ -127,7 +128,9 @@ class GPSSpoofer:
     #print "Publishing odometry"
     self.pwc.pose.pose.position.x += self.R_noise*cos(self.theta_noise)
     self.pwc.pose.pose.position.y += self.R_noise*sin(self.theta_noise)
-    self.pub_disturbed_pose.publish(self.pwc)
+
+    if (self.publish_pose == True):
+        self.pub_disturbed_pose.publish(self.pwc)
 
     self.point.point.x += self.R_noise*cos(self.theta_noise)
     self.point.point.y += self.R_noise*sin(self.theta_noise)
