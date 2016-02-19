@@ -14,6 +14,7 @@
 #include <std_msgs/Float64.h>
 
 bool g_is_sim;
+bool g_publish_pose;
 
 geodetic_converter::GeodeticConverter g_geodetic_converter;
 sensor_msgs::Imu g_latest_imu_msg;
@@ -126,11 +127,14 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
     }
   }
 
-  g_gps_pose_pub.publish(pose_msg);
+  if (g_publish_pose) {
+    g_gps_pose_pub.publish(pose_msg);
+  }
   g_gps_position_pub.publish(position_msg);
 
   // Fill up transform message
-  geometry_msgs::TransformStampedPtr transform_msg(new geometry_msgs::TransformStamped);
+  geometry_msgs::TransformStampedPtr transform_msg(
+      new geometry_msgs::TransformStamped);
   transform_msg->header = msg->header;
   transform_msg->header.frame_id = "world";
   transform_msg->transform.translation.x = x;
@@ -145,8 +149,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   g_gps_transform_pub.publish(transform_msg);
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   ros::init(argc, argv, "gps_to_pose_conversion_node");
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
@@ -166,41 +169,57 @@ int main(int argc, char** argv)
   ros::param::param("~trust_gps", g_trust_gps, false);
 
   // Get manual parameters
-  ros::param::param("~fixed_covariance/position/x", g_covariance_position_x, 4.0);
-  ros::param::param("~fixed_covariance/position/y", g_covariance_position_y, 4.0);
-  ros::param::param("~fixed_covariance/position/z", g_covariance_position_z, 100.0);
-  ros::param::param("~fixed_covariance/orientation/x", g_covariance_orientation_x, 0.02);
-  ros::param::param("~fixed_covariance/orientation/y", g_covariance_orientation_y, 0.02);
-  ros::param::param("~fixed_covariance/orientation/z", g_covariance_orientation_z, 0.11);
+  ros::param::param("~fixed_covariance/position/x", g_covariance_position_x,
+                    4.0);
+  ros::param::param("~fixed_covariance/position/y", g_covariance_position_y,
+                    4.0);
+  ros::param::param("~fixed_covariance/position/z", g_covariance_position_z,
+                    100.0);
+  ros::param::param("~fixed_covariance/orientation/x",
+                    g_covariance_orientation_x, 0.02);
+  ros::param::param("~fixed_covariance/orientation/y",
+                    g_covariance_orientation_y, 0.02);
+  ros::param::param("~fixed_covariance/orientation/z",
+                    g_covariance_orientation_z, 0.11);
+
+  // Specify whether to publish pose or not
+  ros::param::param("~publish_pose", g_publish_pose, false);
 
   // Wait until GPS reference parameters are initialized.
   double latitude, longitude, altitude;
   do {
     ROS_INFO("Waiting for GPS reference parameters...");
-    if (nh.getParam("/gps_ref_latitude", latitude) && nh.getParam("/gps_ref_longitude", longitude)
-        && nh.getParam("/gps_ref_altitude", altitude)) {
+    if (nh.getParam("/gps_ref_latitude", latitude) &&
+        nh.getParam("/gps_ref_longitude", longitude) &&
+        nh.getParam("/gps_ref_altitude", altitude)) {
       g_geodetic_converter.initialiseReference(latitude, longitude, altitude);
     } else {
-      ROS_INFO("GPS reference not ready yet, use set_gps_reference_node to set it");
-      ros::Duration(0.5).sleep();  // sleep for half a second
+      ROS_INFO(
+          "GPS reference not ready yet, use set_gps_reference_node to set it");
+      ros::Duration(0.5).sleep(); // sleep for half a second
     }
   } while (!g_geodetic_converter.isInitialised());
 
   // Show reference point
   double initial_latitude, initial_longitude, initial_altitude;
-  g_geodetic_converter.getReference(&initial_latitude, &initial_longitude, &initial_altitude);
-  ROS_INFO("GPS reference initialized correctly %f, %f, %f", initial_latitude, initial_longitude,
-           initial_altitude);
+  g_geodetic_converter.getReference(&initial_latitude, &initial_longitude,
+                                    &initial_altitude);
+  ROS_INFO("GPS reference initialized correctly %f, %f, %f", initial_latitude,
+           initial_longitude, initial_altitude);
 
   // Initialize publishers
-  g_gps_pose_pub = nh.advertise < geometry_msgs::PoseWithCovarianceStamped > ("gps_pose", 1);
-  g_gps_transform_pub = nh.advertise < geometry_msgs::TransformStamped > ("gps_transform", 1);
-  g_gps_position_pub = nh.advertise < geometry_msgs::PointStamped > ("gps_position", 1);
+  g_gps_pose_pub =
+      nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("gps_pose", 1);
+  g_gps_transform_pub =
+      nh.advertise<geometry_msgs::TransformStamped>("gps_transform", 1);
+  g_gps_position_pub =
+      nh.advertise<geometry_msgs::PointStamped>("gps_position", 1);
 
   // Subscribe to IMU and GPS fixes, and convert in GPS callback
   ros::Subscriber imu_sub = nh.subscribe("imu", 1, &imu_callback);
   ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
-  ros::Subscriber altitude_sub = nh.subscribe("external_altitude", 1, &altitude_callback);
+  ros::Subscriber altitude_sub =
+      nh.subscribe("external_altitude", 1, &altitude_callback);
 
   ros::spin();
 }
