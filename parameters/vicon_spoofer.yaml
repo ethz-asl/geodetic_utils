@@ -1,7 +1,0 @@
-# Noise parameters for vicon spoofer
-
-# Maximum noise radius (polar coordinates)
-R = 0.1   # [m]
-
-# Timeout between noise sampling updates
-timeout = 5.0   # [s]
