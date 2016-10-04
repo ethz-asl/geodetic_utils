@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
   ros::Subscriber imu_sub = nh.subscribe("imu", 1, &imu_callback);
   ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
   ros::Subscriber altitude_sub =
-    nh.subscribe("external_altitude", 1, &altitude_callback);
+     nh.subscribe("external_altitude", 1, &altitude_callback);
 
   ros::spin();
 }
