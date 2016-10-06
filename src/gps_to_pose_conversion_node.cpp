@@ -33,6 +33,7 @@ double g_covariance_position_z;
 double g_covariance_orientation_x;
 double g_covariance_orientation_y;
 double g_covariance_orientation_z;
+std::string g_frame_id;
 
 void imu_callback(const sensor_msgs::ImuConstPtr& msg)
 {
@@ -79,7 +80,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   geometry_msgs::PoseWithCovarianceStampedPtr pose_msg(
       new geometry_msgs::PoseWithCovarianceStamped);
   pose_msg->header = msg->header;
-  pose_msg->header.frame_id = "world";
+  pose_msg->header.frame_id = g_frame_id;
   pose_msg->pose.pose.position.x = x;
   pose_msg->pose.pose.position.y = y;
   pose_msg->pose.pose.position.z = z;
@@ -89,7 +90,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   geometry_msgs::PointStampedPtr position_msg(
     new geometry_msgs::PointStamped);
   position_msg->header = pose_msg->header;
-  position_msg->header.frame_id = "world";
+  position_msg->header.frame_id = g_frame_id;
   position_msg->point = pose_msg->pose.pose.position;
 
   // If external altitude messages received, include in pose and position messages
@@ -136,7 +137,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   geometry_msgs::TransformStampedPtr transform_msg(
       new geometry_msgs::TransformStamped);
   transform_msg->header = msg->header;
-  transform_msg->header.frame_id = "world";
+  transform_msg->header.frame_id = g_frame_id;
   transform_msg->transform.translation.x = x;
   transform_msg->transform.translation.y = y;
   transform_msg->transform.translation.z = z;
@@ -181,6 +182,8 @@ int main(int argc, char **argv) {
                     g_covariance_orientation_y, 0.02);
   ros::param::param("~fixed_covariance/orientation/z",
                     g_covariance_orientation_z, 0.11);
+  ros::param::param<std::string>("~frame_id",
+                                 g_frame_id, "world");
 
   // Specify whether to publish pose or not
   ros::param::param("~publish_pose", g_publish_pose, false);
@@ -219,7 +222,7 @@ int main(int argc, char **argv) {
   ros::Subscriber imu_sub = nh.subscribe("imu", 1, &imu_callback);
   ros::Subscriber gps_sub = nh.subscribe("gps", 1, &gps_callback);
   ros::Subscriber altitude_sub =
-      nh.subscribe("external_altitude", 1, &altitude_callback);
+     nh.subscribe("external_altitude", 1, &altitude_callback);
 
   ros::spin();
 }

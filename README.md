@@ -21,6 +21,7 @@ Creates a reference frame based on initial GPS measurements
 Publishes position information based on GPS measurements and initialised reference frame
 #### Parameters
 * `sim` - true if GPS readings received from /gazebo using Hectors plugin, false if received from actual device
+* `frame_id` - string in header field of output messages ("world" is the default one if it's not specified)
 
 #### Subscribed Topics:
 * `gps` ([sensor_msgs/NavSatFix](http://docs.ros.org/api/sensor_msgs/html/msg/NavSatFix.html)) - GPS sensor information
