@@ -47,7 +47,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
     g_lon_ref += msg->longitude;
     g_alt_ref += msg->altitude;
 
-    ROS_INFO("Current measurement: %f, %f, %f", msg->latitude, msg->longitude, msg->altitude);
+    ROS_INFO("Current measurement: %3.8f, %3.8f, %4.2f", msg->latitude, msg->longitude, msg->altitude);
 
     if (g_count == g_its) {
       if (g_mode == MODE_AVERAGE) {
@@ -66,7 +66,7 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr & msg)
       nh.setParam("/gps_ref_altitude", g_alt_ref);
       nh.setParam("/gps_ref_is_init", true);
 
-      ROS_INFO("Final reference position: %f, %f, %f", g_lat_ref, g_lon_ref, g_alt_ref);
+      ROS_INFO("Final reference position: %3.8f, %3.8f, %4.2f", g_lat_ref, g_lon_ref, g_alt_ref);
 
       return;
     } else {
