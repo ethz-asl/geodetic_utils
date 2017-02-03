@@ -12,6 +12,7 @@
 #include <geometry_msgs/PointStamped.h>
 #include <geodetic_utils/geodetic_conv.hpp>
 #include <std_msgs/Float64.h>
+#include <tf/transform_broadcaster.h>
 
 bool g_is_sim;
 bool g_publish_pose;
@@ -34,6 +35,9 @@ double g_covariance_orientation_x;
 double g_covariance_orientation_y;
 double g_covariance_orientation_z;
 std::string g_frame_id;
+std::string g_tf_child_frame_id;
+
+tf::TransformBroadcaster *tf_broadcaster;
 
 void imu_callback(const sensor_msgs::ImuConstPtr& msg)
 {
@@ -148,6 +152,18 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
   }
 
   g_gps_transform_pub.publish(transform_msg);
+
+  // Fill up TF broadcaster
+  tf::Transform transform;
+  transform.setOrigin(tf::Vector3(x, y, z));
+  transform.setRotation(tf::Quaternion(g_latest_imu_msg.orientation.x,
+                                       g_latest_imu_msg.orientation.y,
+                                       g_latest_imu_msg.orientation.z,
+                                       g_latest_imu_msg.orientation.w));
+  tf_broadcaster->sendTransform(tf::StampedTransform(transform,
+                                                     ros::Time::now(),
+                                                     g_frame_id,
+                                                     g_tf_child_frame_id));
 }
 
 int main(int argc, char **argv) {
@@ -157,6 +173,7 @@ int main(int argc, char **argv) {
 
   g_got_imu = false;
   g_got_altitude = false;
+  tf_broadcaster = new tf::TransformBroadcaster();
 
   // Use different coordinate transform if using simulator
   if (!pnh.getParam("is_sim", g_is_sim)) {
@@ -184,6 +201,8 @@ int main(int argc, char **argv) {
                     g_covariance_orientation_z, 0.11);
   ros::param::param<std::string>("~frame_id",
                                  g_frame_id, "world");
+  ros::param::param<std::string>("~tf_child_frame_id",
+                                 g_tf_child_frame_id, "gps_receiver");
 
   // Specify whether to publish pose or not
   ros::param::param("~publish_pose", g_publish_pose, false);
