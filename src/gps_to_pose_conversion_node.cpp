@@ -37,7 +37,7 @@ double g_covariance_orientation_z;
 std::string g_frame_id;
 std::string g_tf_child_frame_id;
 
-tf::TransformBroadcaster *tf_broadcaster;
+std::shared_ptr<tf::TransformBroadcaster> p_tf_broadcaster;
 
 void imu_callback(const sensor_msgs::ImuConstPtr& msg)
 {
@@ -160,10 +160,10 @@ void gps_callback(const sensor_msgs::NavSatFixConstPtr& msg)
                                        g_latest_imu_msg.orientation.y,
                                        g_latest_imu_msg.orientation.z,
                                        g_latest_imu_msg.orientation.w));
-  tf_broadcaster->sendTransform(tf::StampedTransform(transform,
-                                                     ros::Time::now(),
-                                                     g_frame_id,
-                                                     g_tf_child_frame_id));
+  p_tf_broadcaster->sendTransform(tf::StampedTransform(transform,
+                                                       ros::Time::now(),
+                                                       g_frame_id,
+                                                       g_tf_child_frame_id));
 }
 
 int main(int argc, char **argv) {
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
 
   g_got_imu = false;
   g_got_altitude = false;
-  tf_broadcaster = new tf::TransformBroadcaster();
+  p_tf_broadcaster = std::make_shared<tf::TransformBroadcaster>();
 
   // Use different coordinate transform if using simulator
   if (!pnh.getParam("is_sim", g_is_sim)) {
