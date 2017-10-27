@@ -16,5 +16,5 @@ cs_add_executable(gps_to_pose_conversion_node src/gps_to_pose_conversion_node.cp
 #target_link_libraries(gps_to_pose_conversion_node  ${catkin_LIBRARIES})
 
 cs_install()
-cs_install_scripts(src/gps_spoofer.py src/euler_radians_to_degrees.py)
+cs_install_scripts(src/euler_radians_to_degrees.py)
 cs_export()
