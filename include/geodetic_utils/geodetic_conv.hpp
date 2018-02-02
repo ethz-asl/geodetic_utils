@@ -12,6 +12,64 @@ static double kFirstEccentricitySquared = 6.69437999014 * 0.001;
 static double kSecondEccentricitySquared = 6.73949674228 * 0.001;
 static double kFlattening = 1 / 298.257223563;
 
+
+inline double rad2Deg(const double radians)
+{
+  return (radians / M_PI) * 180.0;
+}
+
+inline double deg2Rad(const double degrees)
+{
+  return (degrees / 180.0) * M_PI;
+}
+
+inline void Geodetic2Ecef(const double latitude, const double longitude, const double altitude,
+                          double* x, double* y, double* z)
+{
+  // Convert geodetic coordinates to ECEF.
+  // http://code.google.com/p/pysatel/source/browse/trunk/coord.py?r=22
+  const double lat_rad = deg2Rad(latitude);
+  const double lon_rad = deg2Rad(longitude);
+  const double sLat = sin(lat_rad);
+  const double sLon = sin(lon_rad);
+  const double cLat = cos(lat_rad);
+  const double cLon = cos(lon_rad);
+
+  double xi = sqrt(1 - kFirstEccentricitySquared * sLat * sLat);
+  *x = (kSemimajorAxis / xi + altitude) * cLat * cLon;
+  *y = (kSemimajorAxis / xi + altitude) * cLat * sLon;
+  *z = (kSemimajorAxis / xi * (1 - kFirstEccentricitySquared) + altitude) * sLat;
+}
+
+inline void Ecef2Geodetic(const double x, const double y, const double z,
+                          double* latitude, double* longitude, double* altitude)
+{
+  // Convert ECEF coordinates to geodetic coordinates.
+  // J. Zhu, "Conversion of Earth-centered Earth-fixed coordinates
+  // to geodetic coordinates," IEEE Transactions on Aerospace and
+  // Electronic Systems, vol. 30, pp. 957-961, 1994.
+
+  double r = sqrt(x * x + y * y);
+  double Esq = kSemimajorAxis * kSemimajorAxis - kSemiminorAxis * kSemiminorAxis;
+  double F = 54 * kSemiminorAxis * kSemiminorAxis * z * z;
+  double G = r * r + (1 - kFirstEccentricitySquared) * z * z - kFirstEccentricitySquared * Esq;
+  double C = (kFirstEccentricitySquared * kFirstEccentricitySquared * F * r * r) / pow(G, 3);
+  double S = cbrt(1 + C + sqrt(C * C + 2 * C));
+  double P = F / (3 * pow((S + 1 / S + 1), 2) * G * G);
+  double Q = sqrt(1 + 2 * kFirstEccentricitySquared * kFirstEccentricitySquared * P);
+  double r_0 = -(P * kFirstEccentricitySquared * r) / (1 + Q)
+      + sqrt(
+          0.5 * kSemimajorAxis * kSemimajorAxis * (1 + 1.0 / Q)
+              - P * (1 - kFirstEccentricitySquared) * z * z / (Q * (1 + Q)) - 0.5 * P * r * r);
+  double U = sqrt(pow((r - kFirstEccentricitySquared * r_0), 2) + z * z);
+  double V = sqrt(
+      pow((r - kFirstEccentricitySquared * r_0), 2) + (1 - kFirstEccentricitySquared) * z * z);
+  double Z_0 = kSemiminorAxis * kSemiminorAxis * z / (kSemimajorAxis * V);
+  *altitude = U * (1 - kSemiminorAxis * kSemiminorAxis / (kSemimajorAxis * V));
+  *latitude = rad2Deg(atan((z + kSecondEccentricitySquared * Z_0) / r));
+  *longitude = rad2Deg(atan2(y, x));
+}
+
 class GeodeticConverter
 {
  public:
@@ -34,6 +92,10 @@ class GeodeticConverter
 
   void getReference(double* latitude, double* longitude, double* altitude)
   {
+    if( !isInitialised() )
+    {
+      throw std::runtime_error("Illegal method call if not initialized");
+    }
     *latitude = initial_latitude_;
     *longitude = initial_longitude_;
     *altitude = initial_altitude_;
@@ -58,51 +120,27 @@ class GeodeticConverter
     haveReference_ = true;
   }
 
-  void geodetic2Ecef(const double latitude, const double longitude, const double altitude, double* x,
-                     double* y, double* z)
+  // added just to keep the old API
+  inline void geodetic2Ecef(const double latitude, const double longitude, const double altitude,
+                     double* x, double* y, double* z)
   {
-    // Convert geodetic coordinates to ECEF.
-    // http://code.google.com/p/pysatel/source/browse/trunk/coord.py?r=22
-    double lat_rad = deg2Rad(latitude);
-    double lon_rad = deg2Rad(longitude);
-    double xi = sqrt(1 - kFirstEccentricitySquared * sin(lat_rad) * sin(lat_rad));
-    *x = (kSemimajorAxis / xi + altitude) * cos(lat_rad) * cos(lon_rad);
-    *y = (kSemimajorAxis / xi + altitude) * cos(lat_rad) * sin(lon_rad);
-    *z = (kSemimajorAxis / xi * (1 - kFirstEccentricitySquared) + altitude) * sin(lat_rad);
+    Geodetic2Ecef(latitude, longitude, altitude, x, y, z);
   }
 
-  void ecef2Geodetic(const double x, const double y, const double z, double* latitude,
-                     double* longitude, double* altitude)
+  // added just to keep the old API.
+  inline void ecef2Geodetic(const double x, const double y, const double z,
+                            double* latitude, double* longitude, double* altitude)
   {
-    // Convert ECEF coordinates to geodetic coordinates.
-    // J. Zhu, "Conversion of Earth-centered Earth-fixed coordinates
-    // to geodetic coordinates," IEEE Transactions on Aerospace and
-    // Electronic Systems, vol. 30, pp. 957-961, 1994.
-
-    double r = sqrt(x * x + y * y);
-    double Esq = kSemimajorAxis * kSemimajorAxis - kSemiminorAxis * kSemiminorAxis;
-    double F = 54 * kSemiminorAxis * kSemiminorAxis * z * z;
-    double G = r * r + (1 - kFirstEccentricitySquared) * z * z - kFirstEccentricitySquared * Esq;
-    double C = (kFirstEccentricitySquared * kFirstEccentricitySquared * F * r * r) / pow(G, 3);
-    double S = cbrt(1 + C + sqrt(C * C + 2 * C));
-    double P = F / (3 * pow((S + 1 / S + 1), 2) * G * G);
-    double Q = sqrt(1 + 2 * kFirstEccentricitySquared * kFirstEccentricitySquared * P);
-    double r_0 = -(P * kFirstEccentricitySquared * r) / (1 + Q)
-        + sqrt(
-            0.5 * kSemimajorAxis * kSemimajorAxis * (1 + 1.0 / Q)
-                - P * (1 - kFirstEccentricitySquared) * z * z / (Q * (1 + Q)) - 0.5 * P * r * r);
-    double U = sqrt(pow((r - kFirstEccentricitySquared * r_0), 2) + z * z);
-    double V = sqrt(
-        pow((r - kFirstEccentricitySquared * r_0), 2) + (1 - kFirstEccentricitySquared) * z * z);
-    double Z_0 = kSemiminorAxis * kSemiminorAxis * z / (kSemimajorAxis * V);
-    *altitude = U * (1 - kSemiminorAxis * kSemiminorAxis / (kSemimajorAxis * V));
-    *latitude = rad2Deg(atan((z + kSecondEccentricitySquared * Z_0) / r));
-    *longitude = rad2Deg(atan2(y, x));
+    Ecef2Geodetic(x, y, z, latitude, longitude, altitude);
   }
 
-  void ecef2Ned(const double x, const double y, const double z, double* north, double* east,
-                double* down)
+  void ecef2Ned(const double x, const double y, const double z,
+                double* north, double* east, double* down)
   {
+    if( !isInitialised() )
+    {
+      throw std::runtime_error("Illegal method call if not initialized");
+    }
     // Converts ECEF coordinate position into local-tangent-plane NED.
     // Coordinates relative to given ECEF coordinate frame.
 
@@ -116,9 +154,13 @@ class GeodeticConverter
     *down = -ret(2);
   }
 
-  void ned2Ecef(const double north, const double east, const double down, double* x, double* y,
-                double* z)
+  void ned2Ecef(const double north, const double east, const double down,
+                double* x, double* y, double* z)
   {
+    if( !isInitialised() )
+    {
+      throw std::runtime_error("Illegal method call if not initialized");
+    }
     // NED (north/east/down) to ECEF coordinates
     Eigen::Vector3d ned, ret;
     ned(0) = north;
@@ -133,27 +175,39 @@ class GeodeticConverter
   void geodetic2Ned(const double latitude, const double longitude, const double altitude,
                     double* north, double* east, double* down)
   {
+    if( !isInitialised() )
+    {
+      throw std::runtime_error("Illegal method call if not initialized");
+    }
     // Geodetic position to local NED frame
     double x, y, z;
-    geodetic2Ecef(latitude, longitude, altitude, &x, &y, &z);
+    Geodetic2Ecef(latitude, longitude, altitude, &x, &y, &z);
     ecef2Ned(x, y, z, north, east, down);
   }
 
   void ned2Geodetic(const double north, const double east, const double down, double* latitude,
                     double* longitude, double* altitude)
   {
+    if( !isInitialised() )
+    {
+      throw std::runtime_error("Illegal method call if not initialized");
+    }
     // Local NED position to geodetic coordinates
     double x, y, z;
     ned2Ecef(north, east, down, &x, &y, &z);
-    ecef2Geodetic(x, y, z, latitude, longitude, altitude);
+    Ecef2Geodetic(x, y, z, latitude, longitude, altitude);
   }
 
   void geodetic2Enu(const double latitude, const double longitude, const double altitude,
                     double* east, double* north, double* up)
   {
+    if( !isInitialised() )
+    {
+      throw std::runtime_error("Illegal method call if not initialized");
+    }
     // Geodetic position to local ENU frame
     double x, y, z;
-    geodetic2Ecef(latitude, longitude, altitude, &x, &y, &z);
+    Geodetic2Ecef(latitude, longitude, altitude, &x, &y, &z);
 
     double aux_north, aux_east, aux_down;
     ecef2Ned(x, y, z, &aux_north, &aux_east, &aux_down);
@@ -163,9 +217,13 @@ class GeodeticConverter
     *up = -aux_down;
   }
 
-  void enu2Geodetic(const double east, const double north, const double up, double* latitude,
-                    double* longitude, double* altitude)
+  void enu2Geodetic(const double east, const double north, const double up,
+                    double* latitude, double* longitude, double* altitude)
   {
+    if( !isInitialised() )
+    {
+      throw std::runtime_error("Illegal method call if not initialized");
+    }
     // Local ENU position to geodetic coordinates
 
     const double aux_north = north;
@@ -173,11 +231,11 @@ class GeodeticConverter
     const double aux_down = -up;
     double x, y, z;
     ned2Ecef(aux_north, aux_east, aux_down, &x, &y, &z);
-    ecef2Geodetic(x, y, z, latitude, longitude, altitude);
+    Ecef2Geodetic(x, y, z, latitude, longitude, altitude);
   }
 
  private:
-  inline Eigen::Matrix3d nRe(const double lat_radians, const double lon_radians)
+  inline static Eigen::Matrix3d nRe(const double lat_radians, const double lon_radians)
   {
     const double sLat = sin(lat_radians);
     const double sLon = sin(lon_radians);
@@ -198,18 +256,6 @@ class GeodeticConverter
     return ret;
   }
 
-  inline
-  double rad2Deg(const double radians)
-  {
-    return (radians / M_PI) * 180.0;
-  }
-
-  inline
-  double deg2Rad(const double degrees)
-  {
-    return (degrees / 180.0) * M_PI;
-  }
-
   double initial_latitude_;
   double initial_longitude_;
   double initial_altitude_;
@@ -224,6 +270,6 @@ class GeodeticConverter
   bool haveReference_;
 
 }; // class GeodeticConverter
-}; // namespace geodetic_conv
+} // namespace geodetic_conv
 
 #endif // GEODETIC_CONVERTER_H_
