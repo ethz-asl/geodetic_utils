@@ -12,6 +12,64 @@ static double kFirstEccentricitySquared = 6.69437999014 * 0.001;
 static double kSecondEccentricitySquared = 6.73949674228 * 0.001;
 static double kFlattening = 1 / 298.257223563;
 
+
+inline double rad2Deg(const double radians)
+{
+  return (radians / M_PI) * 180.0;
+}
+
+inline double deg2Rad(const double degrees)
+{
+  return (degrees / 180.0) * M_PI;
+}
+
+inline void Geodetic2Ecef(const double latitude, const double longitude, const double altitude,
+                          double* x, double* y, double* z)
+{
+  // Convert geodetic coordinates to ECEF.
+  // http://code.google.com/p/pysatel/source/browse/trunk/coord.py?r=22
+  const double lat_rad = deg2Rad(latitude);
+  const double lon_rad = deg2Rad(longitude);
+  const double sLat = sin(lat_rad);
+  const double sLon = sin(lon_rad);
+  const double cLat = cos(lat_rad);
+  const double cLon = cos(lon_rad);
+
+  double xi = sqrt(1 - kFirstEccentricitySquared * sLat * sLat);
+  *x = (kSemimajorAxis / xi + altitude) * cLat * cLon;
+  *y = (kSemimajorAxis / xi + altitude) * cLat * sLon;
+  *z = (kSemimajorAxis / xi * (1 - kFirstEccentricitySquared) + altitude) * sLat;
+}
+
+inline void Ecef2Geodetic(const double x, const double y, const double z,
+                          double* latitude, double* longitude, double* altitude)
+{
+  // Convert ECEF coordinates to geodetic coordinates.
+  // J. Zhu, "Conversion of Earth-centered Earth-fixed coordinates
+  // to geodetic coordinates," IEEE Transactions on Aerospace and
+  // Electronic Systems, vol. 30, pp. 957-961, 1994.
+
+  double r = sqrt(x * x + y * y);
+  double Esq = kSemimajorAxis * kSemimajorAxis - kSemiminorAxis * kSemiminorAxis;
+  double F = 54 * kSemiminorAxis * kSemiminorAxis * z * z;
+  double G = r * r + (1 - kFirstEccentricitySquared) * z * z - kFirstEccentricitySquared * Esq;
+  double C = (kFirstEccentricitySquared * kFirstEccentricitySquared * F * r * r) / pow(G, 3);
+  double S = cbrt(1 + C + sqrt(C * C + 2 * C));
+  double P = F / (3 * pow((S + 1 / S + 1), 2) * G * G);
+  double Q = sqrt(1 + 2 * kFirstEccentricitySquared * kFirstEccentricitySquared * P);
+  double r_0 = -(P * kFirstEccentricitySquared * r) / (1 + Q)
+      + sqrt(
+          0.5 * kSemimajorAxis * kSemimajorAxis * (1 + 1.0 / Q)
+              - P * (1 - kFirstEccentricitySquared) * z * z / (Q * (1 + Q)) - 0.5 * P * r * r);
+  double U = sqrt(pow((r - kFirstEccentricitySquared * r_0), 2) + z * z);
+  double V = sqrt(
+      pow((r - kFirstEccentricitySquared * r_0), 2) + (1 - kFirstEccentricitySquared) * z * z);
+  double Z_0 = kSemiminorAxis * kSemiminorAxis * z / (kSemimajorAxis * V);
+  *altitude = U * (1 - kSemiminorAxis * kSemiminorAxis / (kSemimajorAxis * V));
+  *latitude = rad2Deg(atan((z + kSecondEccentricitySquared * Z_0) / r));
+  *longitude = rad2Deg(atan2(y, x));
+}
+
 class GeodeticConverter
 {
  public:
@@ -69,53 +127,11 @@ class GeodeticConverter
     Geodetic2Ecef(latitude, longitude, altitude, x, y, z);
   }
 
-  static void Geodetic2Ecef(const double latitude, const double longitude, const double altitude,
-                            double* x, double* y, double* z)
-  {
-    // Convert geodetic coordinates to ECEF.
-    // http://code.google.com/p/pysatel/source/browse/trunk/coord.py?r=22
-    double lat_rad = deg2Rad(latitude);
-    double lon_rad = deg2Rad(longitude);
-    double xi = sqrt(1 - kFirstEccentricitySquared * sin(lat_rad) * sin(lat_rad));
-    *x = (kSemimajorAxis / xi + altitude) * cos(lat_rad) * cos(lon_rad);
-    *y = (kSemimajorAxis / xi + altitude) * cos(lat_rad) * sin(lon_rad);
-    *z = (kSemimajorAxis / xi * (1 - kFirstEccentricitySquared) + altitude) * sin(lat_rad);
-  }
-
   // added just to keep the old API.
   inline void ecef2Geodetic(const double x, const double y, const double z,
                             double* latitude, double* longitude, double* altitude)
   {
     Ecef2Geodetic(x, y, z, latitude, longitude, altitude);
-  }
-
-  static void Ecef2Geodetic(const double x, const double y, const double z,
-                            double* latitude, double* longitude, double* altitude)
-  {
-    // Convert ECEF coordinates to geodetic coordinates.
-    // J. Zhu, "Conversion of Earth-centered Earth-fixed coordinates
-    // to geodetic coordinates," IEEE Transactions on Aerospace and
-    // Electronic Systems, vol. 30, pp. 957-961, 1994.
-
-    double r = sqrt(x * x + y * y);
-    double Esq = kSemimajorAxis * kSemimajorAxis - kSemiminorAxis * kSemiminorAxis;
-    double F = 54 * kSemiminorAxis * kSemiminorAxis * z * z;
-    double G = r * r + (1 - kFirstEccentricitySquared) * z * z - kFirstEccentricitySquared * Esq;
-    double C = (kFirstEccentricitySquared * kFirstEccentricitySquared * F * r * r) / pow(G, 3);
-    double S = cbrt(1 + C + sqrt(C * C + 2 * C));
-    double P = F / (3 * pow((S + 1 / S + 1), 2) * G * G);
-    double Q = sqrt(1 + 2 * kFirstEccentricitySquared * kFirstEccentricitySquared * P);
-    double r_0 = -(P * kFirstEccentricitySquared * r) / (1 + Q)
-        + sqrt(
-            0.5 * kSemimajorAxis * kSemimajorAxis * (1 + 1.0 / Q)
-                - P * (1 - kFirstEccentricitySquared) * z * z / (Q * (1 + Q)) - 0.5 * P * r * r);
-    double U = sqrt(pow((r - kFirstEccentricitySquared * r_0), 2) + z * z);
-    double V = sqrt(
-        pow((r - kFirstEccentricitySquared * r_0), 2) + (1 - kFirstEccentricitySquared) * z * z);
-    double Z_0 = kSemiminorAxis * kSemiminorAxis * z / (kSemimajorAxis * V);
-    *altitude = U * (1 - kSemiminorAxis * kSemiminorAxis / (kSemimajorAxis * V));
-    *latitude = rad2Deg(atan((z + kSecondEccentricitySquared * Z_0) / r));
-    *longitude = rad2Deg(atan2(y, x));
   }
 
   void ecef2Ned(const double x, const double y, const double z,
@@ -238,18 +254,6 @@ class GeodeticConverter
     ret(2, 2) = sLat;
 
     return ret;
-  }
-
-  inline static
-  double rad2Deg(const double radians)
-  {
-    return (radians / M_PI) * 180.0;
-  }
-
-  inline static
-  double deg2Rad(const double degrees)
-  {
-    return (degrees / 180.0) * M_PI;
   }
 
   double initial_latitude_;
