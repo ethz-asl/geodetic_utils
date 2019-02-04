@@ -220,7 +220,10 @@ int main(int argc, char **argv) {
           "GPS reference not ready yet, use set_gps_reference_node to set it");
       ros::Duration(0.5).sleep(); // sleep for half a second
     }
-  } while (!g_geodetic_converter.isInitialised());
+  } while (ros::ok() && !g_geodetic_converter.isInitialised());
+
+  if (!ros::ok())
+    return 0;
 
   // Show reference point
   double initial_latitude, initial_longitude, initial_altitude;
