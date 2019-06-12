@@ -5,7 +5,7 @@
                 Type: ENUOrigin
                 LonOrigin:  8.54582
                 LatOrigin:  47.37842
-                AltOrigin:  450.0
+                AltOrigin:  489.619
 
             GPS:
                 Type: GCSCode
@@ -25,5 +25,6 @@
             TF: enu
     </rosparam>
 
+    <node pkg="tf" type="static_transform_publisher" name="enubodybroadcaster" args="1.25 1.25 0 0 0 0 1 enu body 100" />
     <node name="demo_node" type="demo_node" pkg="geotf" output="screen" />
 </launch>
