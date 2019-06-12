@@ -1,0 +1,29 @@
+<launch>
+    <rosparam param="/geotf" >
+        Frames:
+            ENU_LEE:
+                Type: ENUOrigin
+                LonOrigin:  8.54582
+                LatOrigin:  47.37842
+                AltOrigin:  450.0
+
+            GPS:
+                Type: GCSCode
+                Code: WGS84
+
+            UTM:
+                Type: UTM
+                Zone: 32
+                Hemisphere: N
+
+            CH1903+:
+                Type: EPSGCode
+                Code: 2056
+
+        TF_Mapping:
+            GEO_TF: ENU_LEE
+            TF: enu
+    </rosparam>
+
+    <node name="demo_node" type="demo_node" pkg="geotf" output="screen" />
+</launch>
