@@ -248,7 +248,6 @@ bool GeodeticConverter::convert(const std::string& input_frame,
 
   // subtract static offset for input frame if it has one
   if (altitude_offsets_.count(input_frame)) {
-    ROS_INFO_STREAM("Altin: " << input_frame << " "<< altitude_offsets_.at(input_frame));
     output->z() += altitude_offsets_.at(input_frame);
   }
 
@@ -263,7 +262,6 @@ bool GeodeticConverter::convert(const std::string& input_frame,
 
   // add static offset for output frame if it has one
   if (altitude_offsets_.count(output_frame)) {
-    ROS_INFO_STREAM("Altout: " << output_frame << " "<< altitude_offsets_.at(output_frame));
     output->z() -= altitude_offsets_.at(output_frame);
   }
 
