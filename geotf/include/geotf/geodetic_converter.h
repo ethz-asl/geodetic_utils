@@ -26,21 +26,17 @@ class GeodeticConverter {
   typedef std::pair<std::string, std::string> TransformId;
 
  public:
-  void initFromRosParam() {
+
+  // Initialize frame definitions from rosparams
+  void initFromRosParam(const std::string& prefix = "/geotf") {
     GeodeticConverter converter;
     ros::NodeHandle nh;
-    if (!nh.ok() || !nh.hasParam("/geotf")) {
+    if (!nh.ok() || !nh.hasParam(prefix)) {
       ROS_WARN("[GeoTF] No GeodeticTF Transformations found.");
       return;
     }
     XmlRpc::XmlRpcValue yaml_raw_data;
     nh.getParam("/geotf", yaml_raw_data);
-
-    XmlRpc::XmlRpcValue& tf_mapping = yaml_raw_data["TF_Mapping"];
-    std::string geo_tf = tf_mapping["GEO_TF"];
-    std::string tf = tf_mapping["TF"];
-    tf_mapping_ = std::make_pair(geo_tf, tf);
-    ROS_INFO_STREAM("[GeoTF] TF connection is " << geo_tf << " = " << tf);
 
     XmlRpc::XmlRpcValue& frame_definitions = yaml_raw_data["Frames"];
     for (auto it = frame_definitions.begin();
@@ -93,6 +89,22 @@ class GeodeticConverter {
 
       }
 
+      // Get TF Mapping
+      if (yaml_raw_data.hasMember("TF_Mapping")) {
+        XmlRpc::XmlRpcValue& tf_mapping = yaml_raw_data["TF_Mapping"];
+        std::string geo_tf = tf_mapping["GEO_TF"];
+        std::string tf = tf_mapping["TF"];
+        if (mappings_.count(geo_tf)) {
+          tf_mapping_ = std::make_pair(geo_tf, tf);
+        } else {
+          ROS_WARN_STREAM("[GeoTF] Invalid Tf connection, frame " << geo_tf
+                                                                  << " not defined.");
+        }
+        ROS_INFO_STREAM("[GeoTF] TF connection is " << geo_tf << " = " << tf);
+      } else {
+        ROS_WARN_STREAM("[GeoTF] No TF connection specified.");
+      }
+
     }
 
     listener_ = std::make_shared<tf::TransformListener>();
@@ -100,6 +112,10 @@ class GeodeticConverter {
 
   }
 
+  // Adds a coordinate frame by its EPSG identifier
+  // see https://spatialreference.org/ref/epsg/
+  // Example: CH1903+ has epsg id 2056
+  //          https://spatialreference.org/ref/epsg/2056/
   bool addFrameByEPSG(const std::string& name, const int& id) {
     if (mappings_.count(name)) {
       return false;
@@ -120,6 +136,9 @@ class GeodeticConverter {
                                                " as frame " << name);
     return true;
   }
+
+  // Add a coordinate frame by a Geo Coordinate System
+  // Prominent example: WGS84
   bool addFrameByGCSCode(const std::string& name, const std::string& gcscode) {
     if (mappings_.count(name)) {
       return false;
@@ -140,6 +159,9 @@ class GeodeticConverter {
     return true;
   }
 
+  // Add a frame by UTM Zone
+  // zone is the UTM zone (e.g. switzerland is in Zone 32)
+  // north is true for northern hemisphere zones.
   bool addFramebyUTM(const std::string& name,
                      const uint zone,
                      const bool north) {
@@ -158,6 +180,7 @@ class GeodeticConverter {
     return true;
   }
 
+  // Writes a list of all frame definition to console
   void writeDebugInfo() {
 
     for (auto key : mappings_) {
@@ -171,6 +194,9 @@ class GeodeticConverter {
     }
   }
 
+  // Creates a new ENU Frame with its origin at the given
+  // Location (lon,lat, alt)
+  // Where (lon,lat,alt) are defined w.r.t. WGS84
   bool addFrameByENUOrigin(const std::string& name,
                            double lon,
                            double lat,
@@ -206,11 +232,15 @@ class GeodeticConverter {
 
   }
 
+  // Checks if two geo frames can be converted
   bool canConvert(const std::string& input_frame,
                   const std::string& output_frame) {
     return checkTransform(input_frame, output_frame);
   }
 
+  // Converts Pose from one input_frame to output_frame
+  // Both frames are assumed to be geoframes
+  // Currently, Attitude is not adjusted.
   bool convert(const std::string& input_frame,
                const Eigen::Affine3d& input,
                const std::string& output_frame,
@@ -229,6 +259,8 @@ class GeodeticConverter {
     return true;
   }
 
+  // Converts Position from one input_frame to output_frame
+  // Both frames are assumed to be geoframes
   bool convert(const std::string& input_frame,
                const Eigen::Vector3d& input,
                const std::string& output_frame,
@@ -264,6 +296,7 @@ class GeodeticConverter {
 
   }
 
+  // Convets a Pose in a geoframe to a pose in a tf frame
   bool convertToTf(const std::string& geo_input_frame,
                    const Eigen::Affine3d& input,
                    const std::string& tf_output_frame,
@@ -303,14 +336,16 @@ class GeodeticConverter {
     return true;
   }
 
+  // Publishes a geolocation as a tf frame
   void publishAsTf(const std::string& geo_input_frame,
                    const Eigen::Vector3d& input,
                    const std::string& frame_name) {
     Eigen::Affine3d affine(Eigen::Affine3d::Identity());
     affine.translation() = input;
     publishAsTf(geo_input_frame, affine, frame_name);
-
   }
+
+  // Publishes a geolocation as a tf frame
   void publishAsTf(const std::string& geo_input_frame,
                    const Eigen::Affine3d& input,
                    const std::string& frame_name) {
@@ -323,10 +358,11 @@ class GeodeticConverter {
                           geotf_connection_frame,
                           &input_connection);
 
-
-    if(!result){
-      std::cout << "error" << geo_input_frame << "->" << geotf_connection_frame << std::endl;
-      return;}
+    if (!result) {
+      std::cout << "error" << geo_input_frame << "->" << geotf_connection_frame
+                << std::endl;
+      return;
+    }
     tf::StampedTransform tf_input;
     tf::transformEigenToTF(input_connection, tf_input);
     tf_input.stamp_ = ros::Time::now();
@@ -336,6 +372,7 @@ class GeodeticConverter {
     std::cout << tf_input.child_frame_id_ << std::endl;
   }
 
+  // Convets a Pose in a TF to a pose in a Geo frame
   bool convertFromTf(const std::string& tf_input_frame,
                      const Eigen::Affine3d& input,
                      const std::string& geo_output_frame,
@@ -417,12 +454,20 @@ class GeodeticConverter {
     return true;
   }
 
+  // Coordinate frame definitions
   std::map<std::string, OGRSpatialReferencePtr> mappings_;
+
+  // Cordinate frame transformations
   std::map<TransformId, OGRCoordinateTransformationPtr> transforms_;
-  std::map<std::string, double>
-      altitude_offsets_; // Altitude offsets for frames to convert to WGS84
-  boost::optional<std::pair<std::string, std::string>>
-      tf_mapping_; //first = geotf frame, second = tf frame
+
+  // Altitude offsets for frames to convert to WGS84
+  std::map<std::string, double> altitude_offsets_;
+
+  //first = geotf frame, second = tf frame
+  // Defines that these two frames (on a geo frame, on a tf frame)
+  // are equal an can be used for geo<->TF conversions
+  // Note: Geoframe must be a cartesian frame.
+  boost::optional<std::pair<std::string, std::string>> tf_mapping_;
 
   std::shared_ptr<tf::TransformListener> listener_;
   std::shared_ptr<tf::TransformBroadcaster> broadcaster_;
