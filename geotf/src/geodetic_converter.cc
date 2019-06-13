@@ -11,12 +11,12 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
   XmlRpc::XmlRpcValue yaml_raw_data;
   nh.getParam("/geotf", yaml_raw_data);
 
-  XmlRpc::XmlRpcValue& frame_definitions = yaml_raw_data["Frames"];
+  auto& frame_definitions = yaml_raw_data["Frames"];
   for (auto it = frame_definitions.begin();
        it != frame_definitions.end(); ++it) {
 
     const std::string frame_name = it->first;
-    XmlRpc::XmlRpcValue& xmlnode = it->second;
+    auto& xmlnode = it->second;
 
     std::string frame_type = xmlnode["Type"];
     if (frame_type == "EPSGCode") {
@@ -64,7 +64,7 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
 
   // Get TF Mapping
   if (yaml_raw_data.hasMember("TF_Mapping")) {
-    XmlRpc::XmlRpcValue& tf_mapping = yaml_raw_data["TF_Mapping"];
+    auto& tf_mapping = yaml_raw_data["TF_Mapping"];
     std::string geo_tf = tf_mapping["GEO_TF"];
     std::string tf = tf_mapping["TF"];
     if (mappings_.count(geo_tf)) {
@@ -92,8 +92,7 @@ bool GeodeticConverter::addFrameByEPSG(const std::string& name, const int& id) {
   }
 
   // Create Spatial Reference from well known code
-  OGRSpatialReferencePtr
-      spatial_ref = std::make_shared<OGRSpatialReference>();
+  auto spatial_ref = std::make_shared<OGRSpatialReference>();
   OGRErr err = spatial_ref->importFromEPSG(id);
   if (err != OGRERR_NONE) {
     std::cout << "ERROR" << err << std::endl;
@@ -116,8 +115,7 @@ bool GeodeticConverter::addFrameByGCSCode(const std::string& name,
   }
 
   // Create Spatial Reference from well known code
-  OGRSpatialReferencePtr
-      spatial_ref = std::make_shared<OGRSpatialReference>();
+  auto spatial_ref = std::make_shared<OGRSpatialReference>();
   OGRErr err = spatial_ref->SetWellKnownGeogCS(gcscode.c_str());
   if (err != OGRERR_NONE) {
     std::cout << "ERROR" << err << std::endl;
@@ -138,8 +136,7 @@ bool GeodeticConverter::addFramebyUTM(const std::string& name,
                                       const bool north) {
 
   // Create Spatial Reference from well known code
-  OGRSpatialReferencePtr
-      spatial_ref = std::make_shared<OGRSpatialReference>();
+  auto spatial_ref = std::make_shared<OGRSpatialReference>();
 
   spatial_ref->SetWellKnownGeogCS("WGS84");
   spatial_ref->SetUTM(zone, north);
@@ -173,8 +170,7 @@ bool GeodeticConverter::addFrameByENUOrigin(const std::string& name,
                                             const double lat,
                                             const double alt) {
   // Create Spatial Reference from well known code
-  OGRSpatialReferencePtr
-      spatial_ref = std::make_shared<OGRSpatialReference>();
+  auto spatial_ref = std::make_shared<OGRSpatialReference>();
 
   // ENU Frame based on GPS coordinates
   spatial_ref->SetWellKnownGeogCS("WGS84");
@@ -192,8 +188,7 @@ bool GeodeticConverter::addFrameByENUOrigin(const std::string& name,
 bool GeodeticConverter::addFrameByWKT(const std::string& name,
                                       const std::string& wktformat) {
   // Create Spatial Reference from well known code
-  OGRSpatialReferencePtr
-      spatial_ref = std::make_shared<OGRSpatialReference>();
+  auto spatial_ref = std::make_shared<OGRSpatialReference>();
 
   std::vector<char> mutable_cstr
       (wktformat.c_str(), wktformat.c_str() + wktformat.size() + 1);
@@ -265,7 +260,7 @@ bool GeodeticConverter::convert(const std::string& input_frame,
     output->z() -= altitude_offsets_.at(output_frame);
   }
 
-  return  true;
+  return true;
 }
 
 // Converts a Pose in a geoframe to a pose in a tf frame
