@@ -8,9 +8,11 @@ catkin_simple(ALL_DEPS_REQUIRED)
 
 find_package(GDAL REQUIRED)
 
+cs_add_library(${PROJECT_NAME} src/geodetic_converter.cc)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} gdal)
 
 cs_add_executable(demo_node src/demo_node.cc)
-target_link_libraries(demo_node ${catkin_LIBRARIES} gdal)
+target_link_libraries(demo_node ${PROJECT_NAME})
 
 
 cs_install()
