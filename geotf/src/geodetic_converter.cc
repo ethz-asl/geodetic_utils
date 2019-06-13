@@ -16,8 +16,8 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
        it != frame_definitions.end(); ++it) {
 
     const std::string frame_name = it->first;
-
     XmlRpc::XmlRpcValue& xmlnode = it->second;
+
     std::string frame_type = xmlnode["Type"];
     if (frame_type == "EPSGCode") {
       if (!xmlnode.hasMember("Code")) {
@@ -59,30 +59,27 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
       double altOrigin = xmlnode["AltOrigin"];
 
       addFrameByENUOrigin(frame_name, lonOrigin, latOrigin, altOrigin);
-
     }
+  }
 
-    // Get TF Mapping
-    if (yaml_raw_data.hasMember("TF_Mapping")) {
-      XmlRpc::XmlRpcValue& tf_mapping = yaml_raw_data["TF_Mapping"];
-      std::string geo_tf = tf_mapping["GEO_TF"];
-      std::string tf = tf_mapping["TF"];
-      if (mappings_.count(geo_tf)) {
-        tf_mapping_ = std::make_pair(geo_tf, tf);
-      } else {
-        ROS_WARN_STREAM("[GeoTF] Invalid Tf connection, frame " << geo_tf
-                                                                << " not defined.");
-      }
-      ROS_INFO_STREAM("[GeoTF] TF connection is " << geo_tf << " = " << tf);
+  // Get TF Mapping
+  if (yaml_raw_data.hasMember("TF_Mapping")) {
+    XmlRpc::XmlRpcValue& tf_mapping = yaml_raw_data["TF_Mapping"];
+    std::string geo_tf = tf_mapping["GEO_TF"];
+    std::string tf = tf_mapping["TF"];
+    if (mappings_.count(geo_tf)) {
+      tf_mapping_ = std::make_pair(geo_tf, tf);
     } else {
-      ROS_WARN_STREAM("[GeoTF] No TF connection specified.");
+      ROS_WARN_STREAM("[GeoTF] Invalid Tf connection, frame " << geo_tf
+                                                              << " not defined.");
     }
-
+    ROS_INFO_STREAM("[GeoTF] TF connection is " << geo_tf << " = " << tf);
+  } else {
+    ROS_WARN_STREAM("[GeoTF] No TF connection specified.");
   }
 
   listener_ = std::make_shared<tf::TransformListener>();
   broadcaster_ = std::make_shared<tf::TransformBroadcaster>();
-
 }
 
 // Adds a coordinate frame by its EPSG identifier
@@ -251,7 +248,8 @@ bool GeodeticConverter::convert(const std::string& input_frame,
 
   // subtract static offset for input frame if it has one
   if (altitude_offsets_.count(input_frame)) {
-    output->z() -= altitude_offsets_.at(input_frame);
+    ROS_INFO_STREAM("Altin: " << input_frame << " "<< altitude_offsets_.at(input_frame));
+    output->z() += altitude_offsets_.at(input_frame);
   }
 
   bool transformed = transform->Transform(1,
@@ -265,9 +263,11 @@ bool GeodeticConverter::convert(const std::string& input_frame,
 
   // add static offset for output frame if it has one
   if (altitude_offsets_.count(output_frame)) {
-    output->z() += altitude_offsets_.at(output_frame);
+    ROS_INFO_STREAM("Altout: " << output_frame << " "<< altitude_offsets_.at(output_frame));
+    output->z() -= altitude_offsets_.at(output_frame);
   }
 
+  return  true;
 }
 
 // Converts a Pose in a geoframe to a pose in a tf frame
