@@ -58,7 +58,7 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
       double lonOrigin = xmlnode["LonOrigin"];
       double altOrigin = xmlnode["AltOrigin"];
 
-      addFrameByENUOrigin(frame_name, lonOrigin, latOrigin, altOrigin);
+      addFrameByENUOrigin(frame_name, latOrigin, lonOrigin, altOrigin);
     }
   }
 
@@ -91,7 +91,7 @@ bool GeodeticConverter::addFrameByEPSG(const std::string& name, const int& id) {
     return false;
   }
 
-  // Create Spatial Reference from well known code
+  // Create Spatial Reference from EPSG ID
   auto spatial_ref = std::make_shared<OGRSpatialReference>();
   OGRErr err = spatial_ref->importFromEPSG(id);
   if (err != OGRERR_NONE) {
@@ -135,7 +135,7 @@ bool GeodeticConverter::addFramebyUTM(const std::string& name,
                                       const uint zone,
                                       const bool north) {
 
-  // Create Spatial Reference from well known code
+  // Create Spatial Reference from UTM Zone
   auto spatial_ref = std::make_shared<OGRSpatialReference>();
 
   spatial_ref->SetWellKnownGeogCS("WGS84");
@@ -163,13 +163,13 @@ void GeodeticConverter::writeDebugInfo() const {
 }
 
 // Creates a new ENU Frame with its origin at the given
-// Location (lon,lat, alt)
+// Location (lat, lon, alt)
 // Where (lon,lat,alt) are defined w.r.t. WGS84
 bool GeodeticConverter::addFrameByENUOrigin(const std::string& name,
-                                            const double lon,
                                             const double lat,
+                                            const double lon,
                                             const double alt) {
-  // Create Spatial Reference from well known code
+  // Create Spatial Reference from ENU origin
   auto spatial_ref = std::make_shared<OGRSpatialReference>();
 
   // ENU Frame based on GPS coordinates
@@ -179,7 +179,7 @@ bool GeodeticConverter::addFrameByENUOrigin(const std::string& name,
   altitude_offsets_.insert(std::make_pair(name, alt));
 
   ROS_INFO_STREAM(
-      "[GeoTF] Added ENUOrigin " << lon << "/" << lat << "/" << alt <<
+      "[GeoTF] Added ENUOrigin " << lat << "/" << lon << "/" << alt <<
                                  " as frame " << name);
   mappings_.insert(std::make_pair(name, spatial_ref));
   return true;
@@ -246,6 +246,14 @@ bool GeodeticConverter::convert(const std::string& input_frame,
     output->z() += altitude_offsets_.at(input_frame);
   }
 
+  // if input system is a geographic coordinate system, switch x and y.
+  // We assume that IsGeographic is true for non-ENU systems
+  // GDAL default is x = lon, y = lat, but we want it the other way around
+  // GDAL default for enu is x=e, y= n, which we do not want to switch
+  if (transform->GetSourceCS()->IsGeographic()) {
+    std::swap(output->x(), output->y());
+  }
+
   bool transformed = transform->Transform(1,
                                           output->data(),
                                           output->data() + 1,
@@ -255,6 +263,10 @@ bool GeodeticConverter::convert(const std::string& input_frame,
     return false;
   }
 
+  // reverse switch if necessary
+  if (transform->GetTargetCS()->IsGeographic()) {
+    std::swap(output->x(), output->y());
+  }
   // add static offset for output frame if it has one
   if (altitude_offsets_.count(output_frame)) {
     output->z() -= altitude_offsets_.at(output_frame);

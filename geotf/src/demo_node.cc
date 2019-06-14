@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     converter.convert("UTM", eth_mainbuilding_utm,
                       "GPS", &eth_mainbuilding_gps);
 
-    ROS_WARN_STREAM("ETH Mainbuilding WGS84 = " << std::setprecision(16)
+    ROS_INFO_STREAM("ETH Mainbuilding WGS84 = " << std::setprecision(16)
                                                 << eth_mainbuilding_gps);
 
   } else {
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
     converter.convert("UTM", eth_mainbuilding_utm,
                       "CH1903+", &eth_mainbuilding_ch);
 
-    ROS_WARN_STREAM("ETH Mainbuilding CH1903+/LV95 = " << std::setprecision(16)
+    ROS_INFO_STREAM("ETH Mainbuilding CH1903+/LV95 = " << std::setprecision(16)
                                                        << eth_mainbuilding_ch);
 
   } else {
@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
     converter.convert("UTM", eth_mainbuilding_utm,
                       "ENU_LEE", &eth_mainbuilding_enu);
 
-    ROS_WARN_STREAM("ETH Mainbuilding in ENU Frame based on LEE Terasse = "
+    ROS_INFO_STREAM("ETH Mainbuilding in ENU Frame based on LEE Terasse = "
                         << std::setprecision(16)
                         << eth_mainbuilding_enu);
 
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
                           body_coords,
                           "UTM",
                           &utm_body_coords);
-  ROS_WARN_STREAM("UTM coordinates of body origin:");
+  ROS_INFO_STREAM("UTM coordinates of body origin:");
   std::cout << utm_body_coords.translation() << std::endl;
 
 
@@ -100,8 +100,8 @@ int main(int argc, char* argv[]) {
 
   // Publish TF Frame CornerGPS based on UTM coordinates
   Eigen::Affine3d gps_building_point(Eigen::Affine3d::Identity());
-  gps_building_point.translation().x() = 8.54616;
-  gps_building_point.translation().y() = 47.37823;
+  gps_building_point.translation().x() = 47.37823;
+  gps_building_point.translation().y() = 8.54616;
   gps_building_point.translation().z() = 489.619;
   converter.publishAsTf("GPS", gps_building_point, "CornerGPS");
 
