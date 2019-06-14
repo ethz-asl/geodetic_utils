@@ -52,8 +52,8 @@ class GeodeticConverter {
   // Location (lon,lat, alt)
   // Where (lon,lat,alt) are defined w.r.t. WGS84
   bool addFrameByENUOrigin(const std::string& name,
-                           double lon,
                            double lat,
+                           double lon,
                            double alt);
 
   // Creates a new frame based on the Well-Known-Text definition
