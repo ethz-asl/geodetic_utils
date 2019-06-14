@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>geotf</name>
+  <version>1.0.0</version>
+  <description>Complex and powerful library for converting coordinates to/from several geodetic frames (lat/lon, ECEF, ENU, NED, etc.)</description>
+
+  <author>Michael Pantic</author>
+
+  <maintainer email="mpantic@ethz.ch">Michael Pantic</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+   <!-- Dependencies. -->
+  <depend>roslib</depend>
+  <depend>roscpp</depend>
+  <depend>tf</depend>
+
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf_conversions</depend>
+  <depend>eigen_catkin</depend>
+  <depend>GDAL</depend>
+
+</package>
