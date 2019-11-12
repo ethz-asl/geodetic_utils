@@ -204,6 +204,23 @@ bool GeodeticConverter::canConvert(const std::string& input_frame,
   return checkTransform(input_frame, output_frame);
 }
 
+void GeodeticConverter::removeFrame(const std::string &name) {
+  size_t num_erased = mappings_.erase(name);
+  altitude_offsets_.erase(name);
+
+  for (auto it = mappings_.begin(); it != mappings_.end(); ++it) {
+    transforms_.erase(std::make_pair(name, it->first));
+    transforms_.erase(std::make_pair(it->first, name));
+  }
+
+  ROS_INFO_COND(num_erased > 0, "[GeoTF] Erased %s from frame mappings.",
+                name.c_str());
+}
+
+bool GeodeticConverter::hasFrame(const std::string &name) {
+  return mappings_.find(name) != mappings_.end();
+}
+
 // Converts Pose from one input_frame to output_frame
 // Both frames are assumed to be geoframes
 // Currently, Attitude is not adjusted.
