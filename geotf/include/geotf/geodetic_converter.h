@@ -60,6 +60,12 @@ class GeodeticConverter {
   // (can be obtained from spatialreference.org for example.)
   bool addFrameByWKT(const std::string& name, const std::string& wktformat);
 
+  // Removes a frame if it exists.
+  void removeFrame(const std::string& name);
+
+  // Check whether a frame is set..
+  bool hasFrame(const std::string& name);
+
   // Checks if two geo frames can be converted
   bool canConvert(const std::string& input_frame,
                   const std::string& output_frame);
@@ -77,7 +83,7 @@ class GeodeticConverter {
   bool convert(const std::string& input_frame,
                const Eigen::Vector3d& input,
                const std::string& output_frame,
-               Eigen::Vector3d* output) ;
+               Eigen::Vector3d* output);
 
   // Convets a Pose in a geoframe to a pose in a tf frame
   bool convertToTf(const std::string& geo_input_frame,
