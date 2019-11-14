@@ -20,7 +20,6 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf_conversions</depend>
-  <depend>eigen_catkin</depend>
   <depend>GDAL</depend>
 
 </package>
