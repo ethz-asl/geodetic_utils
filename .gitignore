@@ -6,4 +6,5 @@
 *.lss
 .cproject
 .project
+.vscode
 *~
