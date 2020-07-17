@@ -194,8 +194,16 @@ bool GeodeticConverter::addFrameByWKT(const std::string& name,
       (wktformat.c_str(), wktformat.c_str() + wktformat.size() + 1);
   char* data = mutable_cstr.data();
 
-  spatial_ref->importFromWkt(&data);
+  OGRErr err = spatial_ref->importFromWkt(&data);
+  if( err != OGRERR_NONE){
+    std::cout << "ERROR" << err << std::endl;
+    return false;
+  }
   mappings_.insert(std::make_pair(name, spatial_ref));
+
+  ROS_INFO_STREAM("[GeoTF] Added WKT " << wktformat <<
+                                       " as frame " << name);
+  return true;
 }
 
 // Checks if two geo frames can be converted
