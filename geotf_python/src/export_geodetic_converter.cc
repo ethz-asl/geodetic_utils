@@ -68,7 +68,7 @@ void exportGeodeticConverter() {
       .def("initFromRosParam", initFromRosParamNoArgs)
       .def("initFromRosParam", initFromRosParamStr)
       .def("addFrameByEPSG", &gc::addFrameByEPSG)
-      .def("addFramebyUTM", &gc::addFramebyUTM)
+      .def("addFrameByUTM", &gc::addFrameByUTM)
       .def("addFrameByGCSCode", &gc::addFrameByGCSCode)
       .def("addFrameByENUOrigin", &gc::addFrameByENUOrigin)
       .def("addFrameByWKT", &gc::addFrameByWKT)

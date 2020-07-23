@@ -45,7 +45,7 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
       }
       int zone = xmlnode["Zone"];
       bool hemisphere = xmlnode["Hemisphere"] == "N";
-      addFramebyUTM(frame_name, zone, hemisphere);
+      addFrameByUTM(frame_name, zone, hemisphere);
 
     } else if (frame_type == "ENUOrigin") {
       if (!xmlnode.hasMember("LatOrigin") || !xmlnode.hasMember("LonOrigin")
@@ -131,7 +131,7 @@ bool GeodeticConverter::addFrameByGCSCode(const std::string& name,
 // Add a frame by UTM Zone
 // zone is the UTM zone (e.g. switzerland is in Zone 32)
 // north is true for northern hemisphere zones.
-bool GeodeticConverter::addFramebyUTM(const std::string& name,
+bool GeodeticConverter::addFrameByUTM(const std::string& name,
                                       const uint zone,
                                       const bool north) {
 
