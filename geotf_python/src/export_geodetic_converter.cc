@@ -12,25 +12,35 @@ void initFromRosParamStr(gc &geodetic_converter, const std::string &prefix) {
   geodetic_converter.initFromRosParam(prefix);
 }
 
-Eigen::Affine3d convertFromTfDefault(gc &geodetic_converter,
+Eigen::Matrix4d convertFromTfDefault(gc &geodetic_converter,
                                      const std::string &geo_input_frame,
-                                     const Eigen::Affine3d &input,
+                                     const Eigen::Matrix4d &input,
                                      const std::string &tf_output_frame) {
-  Eigen::Affine3d output;
-  geodetic_converter.convertToTf(geo_input_frame, input, tf_output_frame,
-                                 &output);
+  Eigen::Affine3d input_aff, output_aff;
+  Eigen::Matrix4d output;
+  // Convert Matrix to Affine3d
+  input_aff = input;
+
+  if (!geodetic_converter.convertFromTf(geo_input_frame, input_aff,
+                                        tf_output_frame, &output_aff)) {
+    std::cout << "something fucked up" << std::endl;
+  }
+
+  // Convert output back to matrix form
+  output = output_aff.matrix();
   return output;
 }
 
-Eigen::Affine3d convertFromTfTime(gc &geodetic_converter,
+Eigen::Matrix4d convertFromTfTime(gc &geodetic_converter,
                                   const std::string &geo_input_frame,
-                                  const Eigen::Affine3d &input,
+                                  const Eigen::Matrix4d &input,
                                   const std::string &tf_output_frame,
                                   const ros::Time &time) {
-  Eigen::Affine3d output;
-  geodetic_converter.convertToTf(geo_input_frame, input, tf_output_frame,
-                                 &output, time);
-  return output;
+  Eigen::Affine3d input_aff, output_aff;
+  input_aff = input;
+  geodetic_converter.convertFromTf(geo_input_frame, input_aff, tf_output_frame,
+                                   &output_aff, time);
+  return output_aff.matrix();
 }
 
 // Wrapper for overloaded functions (workaround for output pointer)
@@ -43,13 +53,37 @@ Eigen::Vector3d convertVec(gc &geodetic_converter,
   return output;
 }
 
-Eigen::Affine3d convertAff(gc &geodetic_converter,
+Eigen::Matrix4d convertAff(gc &geodetic_converter,
                            const std::string &input_frame,
-                           const Eigen::Affine3d &input,
+                           const Eigen::Matrix4d &input,
                            const std::string &output_frame) {
-  Eigen::Affine3d output;
-  geodetic_converter.convert(input_frame, input, output_frame, &output);
-  return output;
+  Eigen::Affine3d input_aff, output_aff;
+  input_aff = input;
+  geodetic_converter.convert(input_frame, input_aff, output_frame, &output_aff);
+  return output_aff.matrix();
+}
+
+bool publishAsTfAff(gc &geodetic_converter, const std::string &geo_input_frame,
+                    const Eigen::Matrix4d &input,
+                    const std::string &frame_name) {
+  Eigen::Affine3d input_aff;
+  input_aff = input;
+
+  return geodetic_converter.publishAsTf(geo_input_frame, input_aff, frame_name);
+}
+
+Eigen::Matrix4d convertToTfAff(gc &geodetic_converter,
+                               const std::string &geo_input_frame,
+                               const Eigen::Matrix4d &input,
+                               const std::string &tf_output_frame,
+                               const ros::Time &time) {
+  Eigen::Affine3d input_aff, output_aff;
+  input_aff = input;
+
+  geodetic_converter.convertToTf(geo_input_frame, input_aff, tf_output_frame,
+                                 &output_aff, time);
+
+  return output_aff.matrix();
 }
 
 void exportGeodeticConverter() {
@@ -58,10 +92,6 @@ void exportGeodeticConverter() {
   // Create objects for overloaded functions
   bool (gc::*publishAsTfVec)(const std::string &geo_input_frame,
                              const Eigen::Vector3d &input,
-                             const std::string &frame_name) = &gc::publishAsTf;
-
-  bool (gc::*publishAsTfAff)(const std::string &geo_input_frame,
-                             const Eigen::Affine3d &input,
                              const std::string &frame_name) = &gc::publishAsTf;
 
   class_<gc, boost::shared_ptr<gc>>("GeodeticConverter", init<>())
@@ -77,10 +107,10 @@ void exportGeodeticConverter() {
       .def("canConvert", &gc::canConvert)
       .def("convert", convertAff)
       .def("convert", convertVec)
-      .def("convertToTf", &gc::convertToTf)
+      .def("convertToTf", convertToTfAff)
       .def("convertFromTf", convertFromTfDefault)
       .def("convertFromTf", convertFromTfTime)
-      .def("publishAsTf", publishAsTfAff)
-      .def("publishAsTf", publishAsTfVec)
+      .def("publishAffAsTf", publishAsTfAff)
+      .def("publishVecAsTf", publishAsTfVec)
       .def("writeDebugInfo", &gc::writeDebugInfo);
 }
