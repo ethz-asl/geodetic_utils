@@ -7,4 +7,5 @@
 .cproject
 .project
 .vscode
+*.pyc
 *~
