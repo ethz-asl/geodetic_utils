@@ -45,7 +45,7 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
       }
       int zone = xmlnode["Zone"];
       bool hemisphere = xmlnode["Hemisphere"] == "N";
-      addFramebyUTM(frame_name, zone, hemisphere);
+      addFrameByUTM(frame_name, zone, hemisphere);
 
     } else if (frame_type == "ENUOrigin") {
       if (!xmlnode.hasMember("LatOrigin") || !xmlnode.hasMember("LonOrigin")
@@ -131,7 +131,7 @@ bool GeodeticConverter::addFrameByGCSCode(const std::string& name,
 // Add a frame by UTM Zone
 // zone is the UTM zone (e.g. switzerland is in Zone 32)
 // north is true for northern hemisphere zones.
-bool GeodeticConverter::addFramebyUTM(const std::string& name,
+bool GeodeticConverter::addFrameByUTM(const std::string& name,
                                       const uint zone,
                                       const bool north) {
 
@@ -194,8 +194,16 @@ bool GeodeticConverter::addFrameByWKT(const std::string& name,
       (wktformat.c_str(), wktformat.c_str() + wktformat.size() + 1);
   char* data = mutable_cstr.data();
 
-  spatial_ref->importFromWkt(&data);
+  OGRErr err = spatial_ref->importFromWkt(&data);
+  if( err != OGRERR_NONE){
+    std::cout << "ERROR" << err << std::endl;
+    return false;
+  }
   mappings_.insert(std::make_pair(name, spatial_ref));
+
+  ROS_INFO_STREAM("[GeoTF] Added WKT " << wktformat <<
+                                       " as frame " << name);
+  return true;
 }
 
 // Checks if two geo frames can be converted
