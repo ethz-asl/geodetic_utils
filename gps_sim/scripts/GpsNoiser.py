@@ -14,27 +14,29 @@ class GpsNoiser:
         self._white = white
         self._pink = pink
         self._brown = brown
-        self._sample_buffer_length = 500  # [s]
+        self._sample_buffer_length = 7200  # [s]
         self._sampling_freq = 10  # [hz]
         # order: white, pink, brown
         self._sample_buffer = np.zeros([self._sample_buffer_length * self._sampling_freq, 9])
         self._sample_buffer_pos = 0
 
-    def sampleNoise(self):
+    def sample_noise(self):
         # make some noise!
         n = self._sample_buffer_length * self._sampling_freq
         for i in range(0, 3):
             self._sample_buffer[:, i] = cn.powerlaw_psd_gaussian(0, n)  # white
             self._sample_buffer[:, i + 3] = cn.powerlaw_psd_gaussian(1, n)  # pink
             self._sample_buffer[:, i + 6] = cn.powerlaw_psd_gaussian(2, n)  # brown
+        self._sample_buffer_pos = 0
 
-    def getNoise(self, pos_enu):
-        i = self._sample_buffer_pos
-
+    def perturb(self, pos_enu):
         if self._sample_buffer_pos >= self._sample_buffer_length * self._sampling_freq:
             print("Run out of sampling buffer")
-        else:
-            self._sample_buffer_pos += 1
+            # redo -> might cause discontinuity in noise, should be avoided
+            self.sample_noise()
+
+        i = self._sample_buffer_pos
+        self._sample_buffer_pos += 1
 
         return pos_enu + np.multiply(self._white, self._sample_buffer[i, 0:3]) + \
                np.multiply(self._pink, self._sample_buffer[i, 3:6]) + \
@@ -44,11 +46,11 @@ class GpsNoiser:
 if __name__ == "__main__":
     a = GpsNoiser()
     true_pos = np.array([0, 0, 0])
-    a.sampleNoise()
+    a.sample_noise()
     disturbed_pos = np.zeros([1000,3])
 
     for i in range(0,1000):
-        disturbed_pos[i,:] = a.getNoise(true_pos)
+        disturbed_pos[i,:] = a.perturb(true_pos)
 
 
     fig, ax = plt.subplots()

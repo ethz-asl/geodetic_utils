@@ -17,12 +17,12 @@ class Magnetometer:
 
     # takes current orientation and rotates magnetic field according to this
     # currently does not include non-linearities in calibration
-    def getMagneticField(self, orientation=np.eye(3)):
+    def get_field(self, orientation=np.eye(3)):
         noised_vector = self._field_vector + np.random.normal([0, 0, 0],
                                                               [self._noise_cov, self._noise_cov, self._noise_cov])
         return orientation.dot(noised_vector)
 
-    def getDeclination(self):
+    def get_declination(self):
         return self._declination
 
 
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     magnetic_field = np.zeros([1000, 3])
     resulting_heading = np.zeros([1000, 1])
     for i in range(0, 1000):
-        magnetic_field[i, :] = a.getMagneticField()
+        magnetic_field[i, :] = a.get_field()
         resulting_heading[i] = np.arctan2(magnetic_field[i, 1], magnetic_field[i, 0]) * (180 / 3.1415)
 
     fig, ax = plt.subplots()
