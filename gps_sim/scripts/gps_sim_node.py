@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import rospy
+import numpy as np
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import MagneticField
 from GpsSimulator import GpsSimulator
-
+from tf import transformations
 
 class GpsSimNode:
 
@@ -15,12 +16,20 @@ class GpsSimNode:
         self.mag_pub = rospy.Publisher('mag_out', MagneticField, queue_size=10)
 
         self.gps_sim = GpsSimulator()
-        rospy.Subscriber("odom_in", String, self.odom_callback)
-
+        rospy.Subscriber("/HeadHelmety/vrpn_client/estimated_odometry", Odometry, self.odom_callback)
 
     def odom_callback(self, data):
         # extract pose
-        input_pose = []  # tbd
+        input_pos = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z])
+        input_pose = transformations.quaternion_matrix(np.array([
+            data.pose.pose.orientation.x,
+            data.pose.pose.orientation.y,
+            data.pose.pose.orientation.z,
+            data.pose.pose.orientation.w
+        ]))
+
+        # assmeble 4x4 matrix
+        input_pose[0:3,3] = input_pos
         input_stamp = data.header.stamp
 
         enu_pos, enu_cov, mag_data = self.gps_sim.simulate(input_pose)
@@ -31,6 +40,9 @@ class GpsSimNode:
         mag_msg.magnetic_field.x = mag_data[0]
         mag_msg.magnetic_field.y = mag_data[1]
         mag_msg.magnetic_field.z = mag_data[2]
+
+        print(np.arctan2(mag_data[1], mag_data[0]) * (180 / 3.1415))
+        self.mag_pub.publish(mag_msg)
 
         if enu_pos is None or enu_cov is None:
             # no gps data :(

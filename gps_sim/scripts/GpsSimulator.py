@@ -26,16 +26,14 @@ class GpsSimulator:
     def set_mode(self, mode):
         self._current_mode = mode
 
-    def get_mag(self, input_pose):
-        input_orientation = np.eye(3)
-        return self._mag_noiser.getMagneticField(input_orientation)
+    def get_mag(self, input_rot):
+        return self._mag_noiser.get_field(input_rot)
 
-    def get_gps(self, input_pose, fixtype):
+    def get_gps(self, input_enu, fixtype):
         if fixtype is "none":
             # *screaming" lost fix!!
             return None, None
 
-        input_enu = np.zeros([0, 0, 0])
         output_enu = np.zeros([0, 0, 0])
         output_cov = np.eye(3)
 
@@ -53,18 +51,20 @@ class GpsSimulator:
 
         return output_enu, output_cov
 
-    def get_fixtype(self, input_pose):
-        return "auto" # for now
+    def get_fixtype(self, input_enu):
+        return "rtk" # for now
 
     def simulate(self, input_pose):
+        input_enu = input_pose[0:3, 3]
+
         # output GPS
         if self._current_mode is "auto":
-            fixtype = self.get_fixtype(input_pose)
-            output_enu, output_cov = self.get_gps(input_pose, fixtype)
+            fixtype = self.get_fixtype(input_enu)
+            output_enu, output_cov = self.get_gps(input_enu, fixtype)
         else:
-            output_enu, output_cov = self.get_gps(input_pose, self._current_mode)
+            output_enu, output_cov = self.get_gps(input_enu, self._current_mode)
 
-        output_mag = self.get_mag(input_pose)
+        output_mag = self.get_mag(input_pose[0:3, 0:3])
 
         # weird pythonic flex that these variables are found
         return output_enu, output_cov, output_mag
