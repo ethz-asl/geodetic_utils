@@ -2,12 +2,24 @@ import numpy as np
 from GpsNoiser import GpsNoiser
 from Magnetometer import Magnetometer
 
+
 class GpsSimulator:
 
     def __init__(self):
-        self._rtk_noiser = GpsNoiser()
-        self._float_noiser = GpsNoiser()
-        self._ppk_noiser = GpsNoiser()
+        self._rtk_noiser = GpsNoiser(white=np.array([0.0005, 0.0005, 0.002]),
+                                     pink=np.array([0.0035, 0.0035, 0.007]),
+                                     brown=np.array([0.001, 0.001, 0.002]),
+                                     epsilons=np.array([0, 1, 2]))
+
+        self._float_noiser = GpsNoiser(white=np.array([0.0075, 0.0075, 0.015]),
+                                       pink=np.array([0.001, 0.001, 0.002]),
+                                       brown=np.array([0.03, 0.03, 0.06]),
+                                       epsilons=np.array([0, 1, 3.0]))
+
+        self._ppk_noiser = GpsNoiser(white=np.array([0.001, 0.001, 0.002]),
+                                     pink=np.array([0.0, 0.0, 0.0]),
+                                     brown=np.array([0.50, 0.5, 1.0]),
+                                     epsilons=np.array([0, 1, 3.0]))
 
         self._ppk_output_cov = np.eye(3)
         self._float_output_cov = np.eye(3)
@@ -52,7 +64,7 @@ class GpsSimulator:
         return output_enu, output_cov
 
     def get_fixtype(self, input_enu):
-        return "rtk" # for now
+        return "rtk"  # for now
 
     def simulate(self, input_pose):
         input_enu = input_pose[0:3, 3]
