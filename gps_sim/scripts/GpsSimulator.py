@@ -16,22 +16,22 @@ class GpsSimulator:
                                        brown=np.array([0.03, 0.03, 0.06]),
                                        epsilons=np.array([0, 1, 3.0]))
 
-        self._ppk_noiser = GpsNoiser(white=np.array([0.001, 0.001, 0.002]),
+        self._spp_noiser = GpsNoiser(white=np.array([0.001, 0.001, 0.002]),
                                      pink=np.array([0.0, 0.0, 0.0]),
                                      brown=np.array([0.50, 0.5, 1.0]),
                                      epsilons=np.array([0, 1, 3.0]))
 
-        self._ppk_output_cov = np.eye(3)
+        self._spp_output_cov = np.eye(3)
         self._float_output_cov = np.eye(3)
         self._rtk_output_cov = np.eye(3)
 
         self._mag_noiser = Magnetometer()
 
-        # can be: auto, none, ppk, float, rtk
+        # can be: auto, none, spp, float, rtk
         self._current_mode = "auto"
 
         self._rtk_polygon = []
-        self._ppk_polygon = []
+        self._spp_polygon = []
         self._float_polygon = []
         self._none_polygon = []
 
@@ -57,9 +57,9 @@ class GpsSimulator:
             output_enu = self._float_noiser.perturb(input_enu)
             output_cov = self._float_output_cov
 
-        elif fixtype is "ppk":
-            output_enu = self._ppk_noiser.perturb(input_enu)
-            output_enu = self._ppk_output_cov
+        elif fixtype is "spp":
+            output_enu = self._spp_noiser.perturb(input_enu)
+            output_cov = self._spp_output_cov
 
         return output_enu, output_cov
 
