@@ -70,7 +70,11 @@ if __name__ == "__main__":
     for i in range(0, len(rtk_data)):
         sim_data[i, :] = a.perturb(np.array([0.0, 0.0, 0.0]))
 
-    print(sim_data)
+
+    print("empirical covariance")
+    print(np.cov(sim_data.T))
+
+    exit(0)
 
     wa = 2  # working axis
     s_true, f_true = mlab.psd(rtk_data[:, wa], NFFT=2 ** 12)
