@@ -26,7 +26,7 @@ class GpsSimNode:
         self._dyn_rec_srv = Server(GpsSimConfig, self.config_callback)
         self._odom_pub = rospy.Publisher('gps_out', Odometry, queue_size=10)
         self._mag_pub = rospy.Publisher('mag_out', MagneticField, queue_size=10)
-        rospy.Subscriber("/HeadHelmety/vrpn_client/estimated_odometry", Odometry, self.odom_callback)
+        rospy.Subscriber("odom_in", Odometry, self.odom_callback)
 
     def config_callback(self, cfg, lvl):
         rospy.logwarn("Changing to " + cfg.sim_mode)
