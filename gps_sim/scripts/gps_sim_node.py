@@ -4,6 +4,7 @@ import numpy as np
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import MagneticField
+from geometry_msgs.msg import TransformStamped
 from GpsSimulator import GpsSimulator
 from tf import transformations
 
@@ -24,8 +25,9 @@ class GpsSimNode:
 
         # Ros stuff
         self._dyn_rec_srv = Server(GpsSimConfig, self.config_callback)
-        self._odom_pub = rospy.Publisher('gps_out', Odometry, queue_size=10)
-        self._mag_pub = rospy.Publisher('mag_out', MagneticField, queue_size=10)
+        self._odom_pub = rospy.Publisher('gps_odom_out', Odometry, queue_size=1)
+        self._tf_pub = rospy.Publisher("gps_transform_out", TransformStamped, queue_size=1)
+        self._mag_pub = rospy.Publisher('mag_out', MagneticField, queue_size=1)
         rospy.Subscriber("odom_in", Odometry, self.odom_callback)
 
     def config_callback(self, cfg, lvl):
@@ -74,6 +76,19 @@ class GpsSimNode:
         odom_msg.pose.covariance[13] = enu_cov[2, 1]
         odom_msg.pose.covariance[14] = enu_cov[2, 2]
         self._odom_pub.publish(odom_msg)
+
+        # also output as transform stamped
+        tf_msg = TransformStamped()
+        tf_msg.header.stamp = self._input_stamp
+        tf_msg.transform.translation.x = enu_pos[0]
+        tf_msg.transform.translation.y = enu_pos[1]
+        tf_msg.transform.translation.z = enu_pos[2]
+        tf_msg.transform.rotation.x = 0
+        tf_msg.transform.rotation.y = 0
+        tf_msg.transform.rotation.z = 0
+        tf_msg.transform.rotation.w = 1
+        self._tf_pub.publish(tf_msg)
+
 
     def odom_callback(self, data):
         rospy.logdebug("Odometry received")
