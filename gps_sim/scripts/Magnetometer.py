@@ -24,21 +24,3 @@ class Magnetometer:
 
     def get_declination(self):
         return self._declination
-
-
-if __name__ == "__main__":
-    a = Magnetometer()
-    magnetic_field = np.zeros([1000, 3])
-    resulting_heading = np.zeros([1000, 1])
-    for i in range(0, 1000):
-        magnetic_field[i, :] = a.get_field()
-        resulting_heading[i] = np.arctan2(magnetic_field[i, 1], magnetic_field[i, 0]) * (180 / 3.1415)
-
-    fig, ax = plt.subplots()
-    # ax.plot(magnetic_field[0:1000,0],'r')
-    # ax.plot(magnetic_field[0:1000, 1], 'g')
-    # ax.plot(magnetic_field[0:1000, 2], 'b')
-    ax.plot(resulting_heading, 'r')
-
-    ax.grid()
-    plt.show()
