@@ -61,20 +61,14 @@ class GpsSimNode:
 
         odom_msg = Odometry()
         odom_msg.header.stamp = self._input_stamp
+        odom_msg.frame_id = "enu"
         odom_msg.pose.pose.position.x = enu_pos[0]
         odom_msg.pose.pose.position.y = enu_pos[1]
         odom_msg.pose.pose.position.z = enu_pos[2]
-
-        # to be verified: if covariance matrix is correctly assembled
-        odom_msg.pose.covariance[0] = enu_cov[0, 0]
-        odom_msg.pose.covariance[1] = enu_cov[0, 1]
-        odom_msg.pose.covariance[2] = enu_cov[0, 2]
-        odom_msg.pose.covariance[6] = enu_cov[1, 0]
-        odom_msg.pose.covariance[7] = enu_cov[1, 1]
-        odom_msg.pose.covariance[8] = enu_cov[1, 2]
-        odom_msg.pose.covariance[12] = enu_cov[2, 0]
-        odom_msg.pose.covariance[13] = enu_cov[2, 1]
-        odom_msg.pose.covariance[14] = enu_cov[2, 2]
+        odom_msg.pose.pose.orientation.w = 1.0
+        enu_cov_66 = np.eye(6)
+        enu_cov_66[0:3, 0:3] = enu_cov
+        odom_msg.pose.covariance =  enu_cov_66.flatten("C)")
         self._odom_pub.publish(odom_msg)
 
         # also output as transform stamped
@@ -88,7 +82,6 @@ class GpsSimNode:
         tf_msg.transform.rotation.z = 0
         tf_msg.transform.rotation.w = 1
         self._tf_pub.publish(tf_msg)
-
 
     def odom_callback(self, data):
         rospy.logdebug("Odometry received")
