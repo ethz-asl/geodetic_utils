@@ -22,6 +22,8 @@ class GpsSimNode:
         self._odom_received = False
         self._input_pose = []
         self._input_stamp = []
+        self._input_q = []
+        self._switched = False
 
         # Ros stuff
         self._dyn_rec_srv = Server(GpsSimConfig, self.config_callback)
@@ -61,14 +63,23 @@ class GpsSimNode:
 
         odom_msg = Odometry()
         odom_msg.header.stamp = self._input_stamp
-        odom_msg.frame_id = "enu"
+        odom_msg.header.frame_id = "enu"
         odom_msg.pose.pose.position.x = enu_pos[0]
         odom_msg.pose.pose.position.y = enu_pos[1]
         odom_msg.pose.pose.position.z = enu_pos[2]
-        odom_msg.pose.pose.orientation.w = 1.0
-        enu_cov_66 = np.eye(6)
+
+        set_orientation = True
+        if set_orientation:
+            odom_msg.pose.pose.orientation.x = self._input_q[0]
+            odom_msg.pose.pose.orientation.y = self._input_q[1]
+            odom_msg.pose.pose.orientation.z = self._input_q[2]
+            odom_msg.pose.pose.orientation.w = self._input_q[3]
+        else:
+            odom_msg.pose.pose.orientation.w = 1.0
+
+        enu_cov_66 = np.eye(6) * 0.1
         enu_cov_66[0:3, 0:3] = enu_cov
-        odom_msg.pose.covariance =  enu_cov_66.flatten("C)")
+        odom_msg.pose.covariance = enu_cov_66.flatten("C)")
         self._odom_pub.publish(odom_msg)
 
         # also output as transform stamped
@@ -86,6 +97,14 @@ class GpsSimNode:
     def odom_callback(self, data):
         rospy.logdebug("Odometry received")
 
+        #if data.header.stamp.secs >= 1613926010 and  data.header.stamp.secs < 1613926011 and self._gps_sim._current_mode == "rtk":
+        #    rospy.logwarn("SWITCHED TO SPP")
+        #    self._gps_sim.set_mode("float")
+
+        #if data.header.stamp.secs >= 1613926010 + 30 and self._gps_sim._current_mode == "float":
+        #    rospy.logwarn("SWITCHED TO RTK")
+        #    self._gps_sim.set_mode("rtk")
+
         self._odom_received = True
         # extract pose
         input_pos = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z])
@@ -95,6 +114,13 @@ class GpsSimNode:
             data.pose.pose.orientation.z,
             data.pose.pose.orientation.w
         ]))
+
+        self._input_q = np.array([
+            data.pose.pose.orientation.x,
+            data.pose.pose.orientation.y,
+            data.pose.pose.orientation.z,
+            data.pose.pose.orientation.w
+        ])
 
         # assemble 4x4 matrix
         self._input_pose[0:3, 3] = input_pos
