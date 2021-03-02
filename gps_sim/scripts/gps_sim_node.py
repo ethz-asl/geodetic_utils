@@ -25,6 +25,8 @@ class GpsSimNode:
         self._input_q = []
         self._switched = False
 
+        self._cov_orientation = np.diag([0.007607716, 0.007607716, 0.007607716])
+
         # Ros stuff
         self._dyn_rec_srv = Server(GpsSimConfig, self.config_callback)
         self._odom_pub = rospy.Publisher('gps_odom_out', Odometry, queue_size=1)
@@ -70,15 +72,24 @@ class GpsSimNode:
 
         set_orientation = True
         if set_orientation:
-            odom_msg.pose.pose.orientation.x = self._input_q[0]
-            odom_msg.pose.pose.orientation.y = self._input_q[1]
-            odom_msg.pose.pose.orientation.z = self._input_q[2]
-            odom_msg.pose.pose.orientation.w = self._input_q[3]
+            # only get heading
+            rpy = transformations.euler_from_quaternion(self._input_q)
+            heading = rpy[2]
+
+            # add some noise
+            heading_noise = heading + np.random.normal(0, np.sqrt(self._cov_orientation[2, 2]), 1)
+            q_head = transformations.quaternion_from_euler(0, 0, heading, 'rxyz')
+
+            odom_msg.pose.pose.orientation.x = q_head[0]
+            odom_msg.pose.pose.orientation.y = q_head[1]
+            odom_msg.pose.pose.orientation.z = q_head[2]
+            odom_msg.pose.pose.orientation.w = q_head[3]
         else:
             odom_msg.pose.pose.orientation.w = 1.0
 
         enu_cov_66 = np.eye(6) * 0.1
         enu_cov_66[0:3, 0:3] = enu_cov
+        enu_cov_66[3:6, 3:6] = self._cov_orientation
         odom_msg.pose.covariance = enu_cov_66.flatten("C)")
         self._odom_pub.publish(odom_msg)
 
@@ -97,11 +108,11 @@ class GpsSimNode:
     def odom_callback(self, data):
         rospy.logdebug("Odometry received")
 
-        #if data.header.stamp.secs >= 1613926010 and  data.header.stamp.secs < 1613926011 and self._gps_sim._current_mode == "rtk":
+        # if data.header.stamp.secs >= 1613926010 and  data.header.stamp.secs < 1613926011 and self._gps_sim._current_mode == "rtk":
         #    rospy.logwarn("SWITCHED TO SPP")
         #    self._gps_sim.set_mode("float")
 
-        #if data.header.stamp.secs >= 1613926010 + 30 and self._gps_sim._current_mode == "float":
+        # if data.header.stamp.secs >= 1613926010 + 30 and self._gps_sim._current_mode == "float":
         #    rospy.logwarn("SWITCHED TO RTK")
         #    self._gps_sim.set_mode("rtk")
 
