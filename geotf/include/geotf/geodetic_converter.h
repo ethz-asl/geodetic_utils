@@ -39,7 +39,7 @@ class GeodeticConverter {
   // Add a frame by UTM Zone
   // zone is the UTM zone (e.g. switzerland is in Zone 32)
   // north is true for northern hemisphere zones.
-  bool addFramebyUTM(const std::string& name,
+  bool addFrameByUTM(const std::string& name,
                      const uint zone,
                      const bool north);
 

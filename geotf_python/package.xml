@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+  <name>geotf_python</name>
+  <version>1.0.0</version>
+  <description>Python bindings for geotf.</description>
+
+  <maintainer email="clanegge@ethz.ch">Christian Lanegger</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <build_depend>catkin_boost_python_buildtool</build_depend>
+  <build_depend>geotf</build_depend>
+  <build_depend>numpy_eigen</build_depend>
+  <build_depend>eigen_catkin</build_depend>
+
+  <run_depend>roscpp_initializer</run_depend>
+</package>
