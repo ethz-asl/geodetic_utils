@@ -1,4 +1,7 @@
 #include <geotf/geodetic_converter.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2/convert.h>
+#include <tf2_eigen/tf2_eigen.h>
 namespace geotf {
 // Initialize frame definitions from rosparams
 void GeodeticConverter::initFromRosParam(const std::string& prefix) {
@@ -79,7 +82,7 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
   }
 
   listener_ = std::make_shared<tf::TransformListener>();
-  broadcaster_ = std::make_shared<tf::TransformBroadcaster>();
+  broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>();
 }
 
 // Adds a coordinate frame by its EPSG identifier
@@ -376,11 +379,11 @@ bool GeodeticConverter::publishAsTf(const std::string& geo_input_frame,
     return false;
   }
 
-  tf::StampedTransform tf_input;
-  tf::transformEigenToTF(input_connection, tf_input);
-  tf_input.stamp_ = ros::Time::now();
-  tf_input.frame_id_ = tf_connection_frame;
-  tf_input.child_frame_id_ = frame_name;
+  geometry_msgs::TransformStamped tf_input;
+  tf_input = tf2::eigenToTransform(input_connection);
+  tf_input.header.stamp = ros::Time::now();
+  tf_input.header.frame_id = tf_connection_frame;
+  tf_input.child_frame_id = frame_name;
   broadcaster_->sendTransform(tf_input);
   return true;
 }
