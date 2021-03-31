@@ -78,8 +78,9 @@ void GeodeticConverter::initFromRosParam(const std::string& prefix) {
     ROS_WARN_STREAM("[GeoTF] No TF connection specified.");
   }
 
-  listener_ = std::make_shared<tf::TransformListener>();
-  broadcaster_ = std::make_shared<tf::TransformBroadcaster>();
+  buffer_ = std::make_shared<tf2_ros::Buffer>();
+  listener_ = std::make_shared<tf2_ros::TransformListener>(*buffer_);
+  broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>();
 }
 
 // Adds a coordinate frame by its EPSG identifier
@@ -316,14 +317,14 @@ bool GeodeticConverter::convertToTf(const std::string& geo_input_frame,
   if (!result) { return false; }
 
   // Convert from tf_connection_frame to tf_output_frame.
-  if (!listener_->canTransform(tf_output_frame, tf_connection_frame, time)) {
+  if (!buffer_->canTransform(tf_output_frame, tf_connection_frame, time)) {
     return false;
   }
 
   tf::StampedTransform tf_T_O_C; // transform connection to output.
   Eigen::Affine3d eigen_T_O_C;
   try {
-    listener_->lookupTransform(tf_output_frame,
+    buffer_->lookupTransform(tf_output_frame,
                                tf_connection_frame,
                                time, tf_T_O_C);
   } catch (std::exception& ex) {
@@ -394,7 +395,7 @@ bool GeodeticConverter::convertFromTf(const std::string& tf_input_frame,
   std::string geotf_connection_frame = tf_mapping_->first;
 
   //Convert from tf_input_frame  to tf_connection_frame
-  if (!listener_->canTransform(tf_connection_frame, tf_input_frame, time)) {
+  if (!buffer_->canTransform(tf_connection_frame, tf_input_frame, time)) {
     return false;
   }
 
@@ -404,7 +405,7 @@ bool GeodeticConverter::convertFromTf(const std::string& tf_input_frame,
   Eigen::Affine3d eigen_T_C_I;
 
   try {
-    listener_->lookupTransform(tf_connection_frame,
+    buffer_->lookupTransform(tf_connection_frame,
                                tf_input_frame,
                                time, tf_T_C_I);
   } catch (std::exception& ex) {
