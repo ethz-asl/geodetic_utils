@@ -6,4 +6,6 @@
 *.lss
 .cproject
 .project
+.vscode
+*.pyc
 *~

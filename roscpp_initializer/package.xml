@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>roscpp_initializer</name>
+  <version>1.0.0</version>
+  <description>Wrapper for initializing roscpp from python. Code take from ROS moveit package and made independent to avoid unnecessary dependencies</description>
+
+  <author>Christian Lanegger</author>
+
+  <maintainer email="clanegge@ethz.ch">Christian Lanegger</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <!-- Dependencies. -->
+  <depend>roslib</depend>
+  <depend>roscpp</depend>
+
+  <build_depend>catkin_boost_python_buildtool</build_depend>
+
+</package>
