@@ -13,10 +13,12 @@
 #include <vector>
 #include <memory>
 #include <map>
-#include <tf/transform_listener.h>
-#include <tf/transform_broadcaster.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2_eigen/tf2_eigen.h>
 #include <ros/ros.h>
-#include <tf_conversions/tf_eigen.h>
 
 namespace geotf {
 class GeodeticConverter {
@@ -135,8 +137,9 @@ class GeodeticConverter {
   // Note: Geoframe must be a cartesian frame.
   boost::optional< std::pair<std::string, std::string>>  tf_mapping_;
 
-  std::shared_ptr<tf::TransformListener> listener_;
-  std::shared_ptr<tf::TransformBroadcaster> broadcaster_;
+  std::shared_ptr<tf2_ros::Buffer> buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> listener_;
+  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> broadcaster_;
 
 };
 }
