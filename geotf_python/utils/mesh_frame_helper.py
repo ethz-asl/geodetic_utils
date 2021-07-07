@@ -38,6 +38,4 @@ if __name__ == "__main__":
     # output static TF
     converter.publishVecAsTf("UTM", mesh_origin_utm, "mesh")
     rospy.spin()
-   
-
 
