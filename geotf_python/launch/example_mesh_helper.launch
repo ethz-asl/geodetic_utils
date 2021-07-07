@@ -1,0 +1,31 @@
+<launch>
+
+  <rosparam param="/geotf" >
+        Frames:
+            ENU_ARCHE:
+                Type: ENUOrigin
+                LonOrigin: 7.68341
+                LatOrigin: 47.23378
+                AltOrigin: 429.5
+
+            UTM:
+                Type: UTM
+                Zone: 32
+                Hemisphere: N
+
+        TF_Mapping:
+            GEO_TF: ENU_ARCHE
+            TF: enu
+    </rosparam>
+
+    <node pkg="tf" type="static_transform_publisher" name="enubodybroadcaster" args="1.25 1.25 0 0 0 0 1 enu body 100" />
+
+   <node name="geotf_helper" pkg="geotf_python" type="mesh_frame_helper.py" output="screen">
+ 	<param name="mesh_origin_utm_x" value="400350.0"/>
+        <param name="mesh_origin_utm_y" value="5232005.0"/>
+        <param name="mesh_origin_utm_z" value="424.0"/>
+      <param name="capability_group" value="Payload" />
+  </node>
+
+</launch>
+
