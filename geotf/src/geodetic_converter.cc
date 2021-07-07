@@ -174,7 +174,7 @@ bool GeodeticConverter::addFrameByENUOrigin(const std::string& name,
 
   // ENU Frame based on GPS coordinates
   spatial_ref->SetWellKnownGeogCS("WGS84");
-  spatial_ref->SetOrthographic(lat, lon, 0.0, 0.0);
+  spatial_ref->SetTM(lat, lon, 1.0, 0.0, 0.0);
 
   altitude_offsets_.insert(std::make_pair(name, alt));
 
