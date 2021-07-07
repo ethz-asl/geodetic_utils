@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>gps_sim</name>
+  <version>1.0.0</version>
+  <description>More realistic GPS simulation.</description>
+
+  <maintainer email="mpantic@ethz.ch">Michael Pantic</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+  <buildtool_depend>dynamic_reconfigure</buildtool_depend>
+  <depend>dynamic_reconfigure</depend>
+  <depend>geometric_msgs</depend>
+  <depend>nav_msgs</depend>
+
+</package>
