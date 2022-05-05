@@ -271,14 +271,6 @@ bool GeodeticConverter::convert(const std::string& input_frame,
     output->z() += altitude_offsets_.at(input_frame);
   }
 
-  // if input system is a geographic coordinate system, switch x and y.
-  // We assume that IsGeographic is true for non-ENU systems
-  // GDAL default is x = lon, y = lat, but we want it the other way around
-  // GDAL default for enu is x=e, y= n, which we do not want to switch
-  if (transform->GetSourceCS()->IsGeographic()) {
-    std::swap(output->x(), output->y());
-  }
-
   bool transformed = transform->Transform(1,
                                           output->data(),
                                           output->data() + 1,
@@ -288,10 +280,6 @@ bool GeodeticConverter::convert(const std::string& input_frame,
     return false;
   }
 
-  // reverse switch if necessary
-  if (transform->GetTargetCS()->IsGeographic()) {
-    std::swap(output->x(), output->y());
-  }
   // add static offset for output frame if it has one
   if (altitude_offsets_.count(output_frame)) {
     output->z() -= altitude_offsets_.at(output_frame);
