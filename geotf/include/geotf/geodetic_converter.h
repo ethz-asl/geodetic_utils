@@ -7,6 +7,7 @@
 
 #include <gdal/ogr_spatialref.h>
 #include <gdal/cpl_conv.h>
+#include <gdal/gdal_version.h>
 #include <iostream>
 #include <Eigen/Dense>
 #include <boost/optional.hpp>
