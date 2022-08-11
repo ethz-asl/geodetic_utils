@@ -1,5 +1,14 @@
 #include <geotf/geodetic_converter.h>
 namespace geotf {
+
+GeodeticConverter::GeodeticConverter() {
+  if (GDAL_VERSION_MAJOR < 3) {
+    ROS_INFO_STREAM("Found GDAL Version < 3, performing axis swaps.");
+  } else {
+    ROS_INFO_STREAM("Found GDAL Version >=3, NOT performing axis swaps.");
+  }
+}
+
 // Initialize frame definitions from rosparams
 void GeodeticConverter::initFromRosParam(const std::string &prefix) {
   GeodeticConverter converter;
@@ -83,12 +92,6 @@ void GeodeticConverter::initFromRosParam(const std::string &prefix) {
 
   listener_ = std::make_shared<tf::TransformListener>();
   broadcaster_ = std::make_shared<tf::TransformBroadcaster>();
-
-  if (GDAL_VERSION_MAJOR < 3) {
-    ROS_INFO_STREAM("Found GDAL Version < 3, performing axis swaps.");
-  } else {
-    ROS_INFO_STREAM("Found GDAL Version >=3, NOT performing axis swaps.");
-  }
 }
 
 // Adds a coordinate frame by its EPSG identifier
@@ -276,10 +279,10 @@ bool GeodeticConverter::convert(const std::string &input_frame,
   // GDAL default is x = lon, y = lat, but we want it the other way around
   // GDAL default for enu is x=e, y= n, which we do not want to switch
   // This changed in GDAL >=3, so swap is only needed for older versions.
-  bool swap_needed =
+  bool swap_needed_input =
       transform->GetSourceCS()->IsGeographic() && (GDAL_VERSION_MAJOR < 3);
 
-  if (swap_needed) {
+  if (swap_needed_input) {
     std::swap(output->x(), output->y());
   }
 
@@ -291,7 +294,9 @@ bool GeodeticConverter::convert(const std::string &input_frame,
   }
 
   // reverse switch if necessary
-  if (swap_needed) {
+  bool swap_needed_output =
+      transform->GetTargetCS()->IsGeographic() && (GDAL_VERSION_MAJOR < 3);
+  if (swap_needed_output) {
     std::swap(output->x(), output->y());
   }
   // add static offset for output frame if it has one
