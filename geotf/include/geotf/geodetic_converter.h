@@ -7,6 +7,7 @@
 
 #include <gdal/ogr_spatialref.h>
 #include <gdal/cpl_conv.h>
+#include <gdal/gdal_version.h>
 #include <iostream>
 #include <Eigen/Dense>
 #include <boost/optional.hpp>
@@ -26,6 +27,7 @@ class GeodeticConverter {
   typedef std::pair<std::string, std::string> TransformId;
 
  public:
+   GeodeticConverter();
 
   // Initialize frame definitions from rosparams
   void initFromRosParam(const std::string& prefix = "/geotf");
@@ -49,8 +51,8 @@ class GeodeticConverter {
                          const std::string& gcscode);
 
   // Creates a new ENU Frame with its origin at the given
-  // Location (lon,lat, alt)
-  // Where (lon,lat,alt) are defined w.r.t. WGS84
+  // Location (lat, lon, alt)
+  // Where (lat,lon,alt) are defined w.r.t. WGS84
   bool addFrameByENUOrigin(const std::string& name,
                            double lat,
                            double lon,
