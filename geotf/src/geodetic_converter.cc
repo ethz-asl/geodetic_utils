@@ -18,7 +18,7 @@ void GeodeticConverter::initFromRosParam(const std::string &prefix) {
     return;
   }
   XmlRpc::XmlRpcValue yaml_raw_data;
-  nh.getParam("/geotf", yaml_raw_data);
+  nh.getParam(prefix, yaml_raw_data);
 
   auto &frame_definitions = yaml_raw_data["Frames"];
   for (auto it = frame_definitions.begin(); it != frame_definitions.end();
