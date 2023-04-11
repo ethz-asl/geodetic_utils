@@ -1,2 +1,2 @@
 import numpy_eigen
-from libgeotf_python import *
+from geotf.libgeotf_python import *
