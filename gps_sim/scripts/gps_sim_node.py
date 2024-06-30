@@ -3,6 +3,7 @@ import rospy
 import numpy as np
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import MagneticField
 from geometry_msgs.msg import TransformStamped
 from GpsSimulator import GpsSimulator
@@ -30,13 +31,15 @@ class GpsSimNode:
         # Ros stuff
         self._dyn_rec_srv = Server(GpsSimConfig, self.config_callback)
         self._odom_pub = rospy.Publisher('gps_odom_out', Odometry, queue_size=1)
+        self._pos_pub = rospy.Publisher('/stork/gps_sim/pos_spp', PointStamped, queue_size=100)
         self._tf_pub = rospy.Publisher("gps_transform_out", TransformStamped, queue_size=1)
         self._mag_pub = rospy.Publisher('mag_out', MagneticField, queue_size=1)
         rospy.Subscriber("odom_in", Odometry, self.odom_callback)
+        rospy.Subscriber("/stork/leica/position", PointStamped, self.pos_callback, queue_size=100)
 
     def config_callback(self, cfg, lvl):
-        rospy.logwarn("Changing to " + cfg.sim_mode)
-        self._gps_sim.set_mode(cfg.sim_mode)
+        rospy.logwarn("Changing to " + "spp")
+        self._gps_sim.set_mode("spp")
         return cfg
 
     def publish_at_rate(self):
@@ -90,8 +93,16 @@ class GpsSimNode:
         enu_cov_66 = np.eye(6) * 0.1
         enu_cov_66[0:3, 0:3] = enu_cov
         enu_cov_66[3:6, 3:6] = self._cov_orientation
-        odom_msg.pose.covariance = enu_cov_66.flatten("C)")
+        odom_msg.pose.covariance = enu_cov_66.flatten("C")
         self._odom_pub.publish(odom_msg)
+
+        pos_msg = PointStamped()
+        pos_msg.header.stamp = self._input_stamp
+        pos_msg.header.frame_id = "spp"
+        pos_msg.point.x = enu_pos[0]
+        pos_msg.point.y = enu_pos[1]
+        pos_msg.point.z = enu_pos[2]
+        self._pos_pub.publish(pos_msg)
 
         # also output as transform stamped
         tf_msg = TransformStamped()
@@ -104,6 +115,20 @@ class GpsSimNode:
         tf_msg.transform.rotation.z = 0
         tf_msg.transform.rotation.w = 1
         self._tf_pub.publish(tf_msg)
+
+    def pos_callback(self, data):
+        rospy.logdebug("Position received")
+        self._odom_received = True
+        # extract pose
+        input_pos = np.array([data.point.x, data.point.y, data.point.z])
+        self._input_pose = transformations.quaternion_matrix(np.array([0.0, 0.0, 0.0, 1.0]))
+
+        self._input_q = np.array([0.0, 0.0, 0.0, 1.0])
+
+        # assemble 4x4 matrix
+        self._input_pose[0:3, 3] = input_pos
+        self._input_stamp = data.header.stamp
+        self.publish_at_rate()
 
     def odom_callback(self, data):
         rospy.logdebug("Odometry received")
@@ -138,10 +163,11 @@ class GpsSimNode:
         self._input_stamp = data.header.stamp
 
     def run(self):
-        r = rospy.Rate(10)  # 10hz
-        while not rospy.is_shutdown():
-            self.publish_at_rate()
-            r.sleep()
+        rospy.spin()
+        #r = rospy.Rate(100)  # 10hz
+        #while not rospy.is_shutdown():
+        #    self.publish_at_rate()
+        #    r.sleep()
 
 
 if __name__ == '__main__':
