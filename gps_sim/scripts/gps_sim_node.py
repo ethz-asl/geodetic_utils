@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import rospy
 import numpy as np
-from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import MagneticField
 from geometry_msgs.msg import TransformStamped
-from GpsSimulator import GpsSimulator
+from gps_sim.GpsSimulator import GpsSimulator
 from tf import transformations
 
 from dynamic_reconfigure.server import Server

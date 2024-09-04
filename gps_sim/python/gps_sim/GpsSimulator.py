@@ -1,6 +1,6 @@
 import numpy as np
-from GpsNoiser import GpsNoiser
-from Magnetometer import Magnetometer
+from gps_sim.GpsNoiser import GpsNoiser
+from gps_sim.Magnetometer import Magnetometer
 
 
 class GpsSimulator:
