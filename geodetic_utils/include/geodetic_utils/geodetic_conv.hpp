@@ -52,7 +52,8 @@ class GeodeticConverter
     // Compute ECEF to NED and NED to ECEF matrices
     double phiP = atan2(initial_ecef_z_, sqrt(pow(initial_ecef_x_, 2) + pow(initial_ecef_y_, 2)));
 
-    ecef_to_ned_matrix_ = nRe(phiP, initial_longitude_);
+    // ecef_to_ned_matrix_ = nRe(phiP, initial_longitude_);
+    ecef_to_ned_matrix_ = nRe(initial_latitude_, initial_longitude_);
     ned_to_ecef_matrix_ = nRe(initial_latitude_, initial_longitude_).transpose();
 
     haveReference_ = true;
