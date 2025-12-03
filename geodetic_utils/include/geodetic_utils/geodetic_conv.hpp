@@ -113,7 +113,7 @@ class GeodeticConverter
     ret = ecef_to_ned_matrix_ * vect;
     *north = ret(0);
     *east = ret(1);
-    *down = -ret(2);
+    *down = ret(2);
   }
 
   void ned2Ecef(const double north, const double east, const double down, double* x, double* y,
@@ -123,7 +123,7 @@ class GeodeticConverter
     Eigen::Vector3d ned, ret;
     ned(0) = north;
     ned(1) = east;
-    ned(2) = -down;
+    ned(2) = down;
     ret = ned_to_ecef_matrix_ * ned;
     *x = ret(0) + initial_ecef_x_;
     *y = ret(1) + initial_ecef_y_;
@@ -191,9 +191,9 @@ class GeodeticConverter
     ret(1, 0) = -sLon;
     ret(1, 1) = cLon;
     ret(1, 2) = 0.0;
-    ret(2, 0) = cLat * cLon;
-    ret(2, 1) = cLat * sLon;
-    ret(2, 2) = sLat;
+    ret(2, 0) = -cLat * cLon;
+    ret(2, 1) = -cLat * sLon;
+    ret(2, 2) = -sLat;
 
     return ret;
   }
